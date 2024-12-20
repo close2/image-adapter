@@ -16,9 +16,44 @@ async function initializeApp() {
 async function handleAuthResponse(response) {
     if (response.access_token) {
         document.getElementById('process').style.display = 'block';
-        // Load albums and show selector
-        await loadAlbums();
+        await loadAlbums(response.access_token);
     }
+}
+
+async function loadAlbums(accessToken) {
+    const response = await fetch('https://photoslibrary.googleapis.com/v1/albums', {
+        headers: {
+            'Authorization': 'Bearer ' + accessToken
+        }
+    });
+    
+    const data = await response.json();
+    const albumSelector = document.getElementById('album-selector');
+    
+    // Create source album dropdown
+    const sourceSelect = document.createElement('select');
+    sourceSelect.id = 'source-album';
+    
+    // Create destination album dropdown
+    const destSelect = document.createElement('select');
+    destSelect.id = 'dest-album';
+    
+    data.albums.forEach(album => {
+        const sourceOption = document.createElement('option');
+        sourceOption.value = album.id;
+        sourceOption.textContent = album.title;
+        sourceSelect.appendChild(sourceOption);
+        
+        const destOption = document.createElement('option');
+        destOption.value = album.id;
+        destOption.textContent = album.title;
+        destSelect.appendChild(destOption);
+    });
+    
+    albumSelector.innerHTML = '<div>Source Album: </div>';
+    albumSelector.appendChild(sourceSelect);
+    albumSelector.innerHTML += '<div>Destination Album: </div>';
+    albumSelector.appendChild(destSelect);
 }
 
 window.onload = initializeApp;
