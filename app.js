@@ -1,5 +1,4 @@
-const API_KEY = 'YOUR_API_KEY';
-const CLIENT_ID = 'YOUR_CLIENT_ID';
+const CLIENT_ID = '753842432555-gop0b5be9p1h315hrdm89ag1injqgj1b.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/photoslibrary';
 
 async function initializeApp() {
