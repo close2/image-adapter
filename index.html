@@ -4,11 +4,29 @@
     <title>Google Photos Resizer</title>
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client"></script>
+    <script src="app.js"></script>
+    <style>
+        .step {
+            display: none;
+        }
+        .step.active {
+            display: block;
+        }
+    </style>
 </head>
 <body>
-    <button id="authorize">Authorize Google Photos</button>
-    <div id="album-selector"></div>
-    <button id="process" style="display:none">Process Images</button>
-    <script src="app.js"></script>
+    <div id="auth-step" class="step active">
+        <button id="authorize">Authorize Google Photos</button>
+    </div>
+
+    <div id="album-select-step" class="step">
+        <div id="album-selector"></div>
+        <button id="albumNext">Next</button>
+    </div>
+
+    <div id="preview-step" class="step">
+        <div id="image-preview"></div>
+        <button id="previewNext">Next</button>
+    </div>
 </body>
 </html>
