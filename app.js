@@ -113,6 +113,7 @@ class PreviewStep {
 
 class StepManager {
     static showStep(step) {
+        console.log("Switching to step: " + step.displayElement());
         document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
         document.getElementById(step.displayElement()).classList.add('active');
         step.setup();
