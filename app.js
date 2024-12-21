@@ -121,7 +121,10 @@ class StepManager {
 }
 
 
-StepManager.showStep(new AuthStep());
+
+document.addEventListener('DOMContentLoaded', () => {
+    StepManager.showStep(new AuthStep());
+});
 
 
 
