@@ -36,9 +36,9 @@ class AuthStep {
 
 class AlbumStep {
     constructor(accessToken) {
-        this.api = new GooglePhotosAPI(accessToken);
-        this.albumNextButton = document.getElementById('albumNext');
-        this.loadAlbums();
+        this.accessToken = accessToken;
+        this.albumNextButton = document.getElementById('album-next');
+        this.selectedPhotos = [];
         this.setup();
     }
 
@@ -46,131 +46,30 @@ class AlbumStep {
         return "album-select-step"
     }
 
-    async loadAlbums() {
-        const albums = await this.api.getAlbums();
-        this.renderAlbumSelectors(albums);
-    }
-
-    renderAlbumSelectors(albums) {
-        const albumSelector = document.getElementById('album-selector');
-        const sourceSelect = document.createElement('select');
-        const destSelect = document.createElement('select');
-        
-        sourceSelect.id = 'source-album';
-        destSelect.id = 'dest-album';
-        
-        albums.forEach(album => {
-            sourceSelect.appendChild(this.createOption(album));
-            destSelect.appendChild(this.createOption(album));
-        });
-        
-        albumSelector.innerHTML = '<div>Source Album: </div>';
-        albumSelector.appendChild(sourceSelect);
-        albumSelector.innerHTML += '<div>Destination Album: </div>';
-        albumSelector.appendChild(destSelect);
-    }
-
-    createOption(album) {
-        const option = document.createElement('option');
-        option.value = album.id;
-        option.textContent = album.title;
-        return option;
-    }
-
     setup() {
+        const photoPicker = new google.photos.Picker({
+            clientId: CLIENT_ID,
+            select: 'multi',
+            mimeTypes: 'image/*',
+            onSelect: (photos) => {
+                this.selectedPhotos = photos;
+                StepManager.transitionToStep(new DestinationAlbumStep(
+                    this.accessToken,
+                    this.selectedPhotos
+                ));
+            }
+        });
+
         this.albumNextButton.addEventListener('click', () => {
-            const sourceAlbum = document.getElementById('source-album');
-            const destAlbum = document.getElementById('dest-album');
-            StepManager.transitionToStep(new PreviewStep(
-                this.api.accessToken,
-                {
-                    id: sourceAlbum.value,
-                    title: sourceAlbum.options[sourceAlbum.selectedIndex].text
-                },
-                {
-                    id: destAlbum.value,
-                    title: destAlbum.options[destAlbum.selectedIndex].text
-                }
-            ));
+            photoPicker.open();
         });
-    }
-}
-
-class PreviewStep {
-    constructor(accessToken, sourceAlbum, destAlbum) {
-        this.api = new GooglePhotosAPI(accessToken);
-        this.sourceAlbum = sourceAlbum;
-        this.destAlbum = destAlbum;
-        this.previewNextButton = document.getElementById('previewNext');
-        this.previewContainer = document.getElementById('preview-container');
-        this.selectedImages = new Set();
-        this.loadSourceImages();
-        this.setup();
-    }
-
-    displayElement() {
-        return "preview-step"
-    }
-
-    setup() {
-        this.previewNextButton.addEventListener('click', () => {
-            StepManager.transitionToStep(new ProcessCopyStep(
-                this.api.accessToken,
-                Array.from(this.selectedImages),
-                this.destAlbum
-            ));
-        });
-    }
-
-    async loadSourceImages() {
-        const mediaItems = await this.api.getAlbumMedia(this.sourceAlbum.id);
-        this.renderPreviews(mediaItems);
-    }
-
-    renderPreviews(mediaItems) {
-        this.previewContainer.innerHTML = '';
-        
-        mediaItems.forEach(item => {
-            const previewCard = document.createElement('div');
-            previewCard.className = 'preview-card';
-            
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = true;
-            checkbox.dataset.imageId = item.id;
-            checkbox.addEventListener('change', () => this.toggleImageSelection(item));
-            
-            const img = document.createElement('img');
-            img.src = `${item.baseUrl}=w200-h200`;
-            img.alt = item.filename;
-            
-            const title = document.createElement('div');
-            title.className = 'preview-title';
-            title.textContent = item.filename;
-            
-            previewCard.appendChild(checkbox);
-            previewCard.appendChild(img);
-            previewCard.appendChild(title);
-            this.previewContainer.appendChild(previewCard);
-            
-            this.selectedImages.add(item);
-        });
-    }
-
-    toggleImageSelection(item) {
-        if (this.selectedImages.has(item)) {
-            this.selectedImages.delete(item);
-        } else {
-            this.selectedImages.add(item);
-        }
     }
 }
 
 class ProcessCopyStep {
-    constructor(accessToken, selectedImages, destAlbum) {
+    constructor(accessToken, selectedPhotos) {
         this.api = new GooglePhotosAPI(accessToken);
-        this.selectedImages = selectedImages;
-        this.destAlbum = destAlbum;
+        this.selectedPhotos = selectedPhotos;
         this.processImages();
     }
 
@@ -181,8 +80,8 @@ class ProcessCopyStep {
     async processImages() {
         const GOOGLE_HOME_RATIO = 16/9;
         
-        for (const image of this.selectedImages) {
-            const processedImage = await this.processImage(image, GOOGLE_HOME_RATIO);
+        for (const photo of this.selectedPhotos) {
+            const processedImage = await this.processImage(photo, GOOGLE_HOME_RATIO);
             await this.uploadToAlbum(processedImage);
         }
     }
@@ -237,7 +136,6 @@ class ProcessCopyStep {
         await this.processImages();
     }
 }
-
 class StepManager {
     static transitionToStep(step) {
         console.log("Switching to step: " + step.displayElement());
@@ -316,5 +214,55 @@ class GooglePhotosAPI {
             'Authorization': `Bearer ${this.accessToken}`,
             'Content-Type': 'application/json'
         };
+    }
+
+    async createAlbum(albumName) {
+        const response = await fetch(`${this.baseUrl}/albums`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                album: {
+                    title: albumName
+                }
+            })
+        });
+        return response.json();
+    }
+}
+class DestinationAlbumStep {
+    constructor(accessToken, selectedPhotos) {
+        this.api = new GooglePhotosAPI(accessToken);
+        this.selectedPhotos = selectedPhotos;
+        this.albumNameInput = document.getElementById('album-name-input');
+        this.createAlbumButton = document.getElementById('create-album-button');
+        this.setup();
+    }
+
+    displayElement() {
+        return "destination-album-step"
+    }
+
+    setup() {
+        // Set default album name
+        this.albumNameInput.value = 'google-home';
+
+        this.createAlbumButton.addEventListener('click', async () => {
+            const albumName = this.albumNameInput.value.trim();
+            
+            // Check if album exists
+            const albums = await this.api.getAlbums();
+            let targetAlbum = albums.find(album => album.title === albumName);
+
+            // Create album if it doesn't exist
+            if (!targetAlbum) {
+                targetAlbum = await this.api.createAlbum(albumName);
+            }
+
+            StepManager.transitionToStep(new ProcessCopyStep(
+                this.api.accessToken,
+                this.selectedPhotos,
+                targetAlbum
+            ));
+        });
     }
 }
