@@ -188,27 +188,26 @@ class ProcessCopyStep {
     }
 
     async processImage(image, targetRatio) {
+        const baseUrl = `${image.baseUrl}=w${image.mediaMetadata.width}-h${image.mediaMetadata.height}`;
         const img = new Image();
-        img.crossOrigin = "anonymous";  // Add this line
-    
-        // Wrap image loading in a promise
+        
         await new Promise((resolve) => {
             img.onload = resolve;
-            img.src = image.baseUrl;
+            img.src = baseUrl;
         });
-    
+        
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-    
+        
         const currentRatio = img.width / img.height;
         let newWidth = img.width;
         let newHeight = img.height;
-    
+        
         if (currentRatio > targetRatio) {
             newHeight = img.width / targetRatio;
             canvas.width = img.width;
             canvas.height = newHeight;
-        
+            
             const blackSpace = (newHeight - img.height) / 2;
             ctx.fillStyle = 'black';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -217,18 +216,17 @@ class ProcessCopyStep {
             newWidth = img.height * targetRatio;
             canvas.width = newWidth;
             canvas.height = img.height;
-        
+            
             const blackSpace = (newWidth - img.width) / 2;
             ctx.fillStyle = 'black';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, blackSpace, 0);
         }
-    
+        
         return new Promise(resolve => {
             canvas.toBlob(resolve, 'image/jpeg', 0.95);
         });
     }
-
     async uploadToAlbum(imageBlob) {
         const uploadToken = await this.api.uploadImage(imageBlob);
         await this.api.createMediaItem(uploadToken, this.destAlbum.id);
