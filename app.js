@@ -186,13 +186,16 @@ class ProcessCopyStep {
             await this.uploadToAlbum(processedImage);
         }
     }
-
+    
     async processImage(image, targetRatio) {
-        // Use =d parameter to get downloadable image
-        const baseUrl = `${image.baseUrl}=d`;
-        const response = await fetch(baseUrl);
-        const blob = await response.blob();
-        const img = await createImageBitmap(blob);
+        // Use the same working URL pattern as preview, but with full resolution
+        const baseUrl = `${image.baseUrl}=w2048-h2048`;
+        const img = new Image();
+        
+        await new Promise((resolve) => {
+            img.onload = resolve;
+            img.src = baseUrl;
+        });
         
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -224,6 +227,7 @@ class ProcessCopyStep {
         return new Promise(resolve => {
             canvas.toBlob(resolve, 'image/jpeg', 0.95);
         });
+    }
     }    async uploadToAlbum(imageBlob) {
         const uploadToken = await this.api.uploadImage(imageBlob);
         await this.api.createMediaItem(uploadToken, this.destAlbum.id);
