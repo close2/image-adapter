@@ -36,7 +36,7 @@ class AuthStep {
 
 class SelectImagesStep {
     constructor(accessToken) {
-        this.pickerApi = new PhotosPickerAPI(accessToken);
+        this.accessToken = accessToken;
         this.selectButton = document.getElementById('select-images-button');
         this.selectedPhotos = [];
         this.setup();
@@ -46,32 +46,23 @@ class SelectImagesStep {
         return "select-images-step"
     }
 
-    async setup() {
-        this.selectButton.addEventListener('click', async () => {
-            const session = await this.pickerApi.createSession();
-            window.open(session.pickerUri, '_blank');
-            this.pollSession(session.id);
-        });
-    }
-
-    async pollSession(sessionId) {
-        const checkSession = async () => {
-            const status = await this.pickerApi.checkSession(sessionId);
-            
-            if (status.mediaItemsSet) {
-                const items = await this.pickerApi.getSelectedItems(sessionId);
-                this.selectedPhotos = items.mediaItems;
-                
+    setup() {
+        const photoPicker = new google.photos.Picker({
+            clientId: CLIENT_ID,
+            select: 'multi',
+            mimeTypes: 'image/*',
+            onSelect: (photos) => {
+                this.selectedPhotos = photos;
                 StepManager.transitionToStep(new DestinationAlbumStep(
-                    this.pickerApi.accessToken,
+                    this.accessToken,
                     this.selectedPhotos
                 ));
-            } else {
-                setTimeout(checkSession, status.recommendedIntervalMs || 5000);
             }
-        };
-        
-        checkSession();
+        });
+
+        this.selectButton.addEventListener('click', () => {
+            photoPicker.open();
+        });
     }
 }
 
@@ -273,49 +264,6 @@ class GooglePhotosAPI {
                     title: albumName
                 }
             })
-        });
-        return response.json();
-    }
-}
-
-class PhotosPickerAPI {
-    constructor(accessToken) {
-        this.accessToken = accessToken;
-        this.baseUrl = 'https://photoslibrary.googleapis.com/v1/photos/picker';
-    }
-
-    getHeaders() {
-        return {
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        };
-    }
-
-    async createSession() {
-        const response = await fetch(`${this.baseUrl}/sessions`, {
-            method: 'POST',
-            headers: this.getHeaders(),
-            body: JSON.stringify({
-                mimeTypes: ['image/jpeg', 'image/png'],
-                allowMultipleSelection: true
-            })
-        });
-        return response.json();
-    }
-
-    async checkSession(sessionId) {
-        const response = await fetch(`${this.baseUrl}/sessions/${sessionId}`, {
-            headers: this.getHeaders()
-        });
-        return response.json();
-    }
-
-    async getSelectedItems(sessionId) {
-        const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/items`, {
-            headers: this.getHeaders()
         });
         return response.json();
     }
