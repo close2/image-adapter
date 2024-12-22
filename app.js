@@ -188,8 +188,7 @@ class ProcessCopyStep {
     }
     
     async processImage(image, targetRatio) {
-        // Use the same working URL pattern as preview, but with full resolution
-        const baseUrl = `${image.baseUrl}=w2048-h2048`;
+        const baseUrl = `${image.baseUrl}=d`;
         const img = new Image();
         
         await new Promise((resolve) => {
@@ -228,7 +227,8 @@ class ProcessCopyStep {
             canvas.toBlob(resolve, 'image/jpeg', 0.95);
         });
     }
-    }    async uploadToAlbum(imageBlob) {
+    
+    async uploadToAlbum(imageBlob) {
         const uploadToken = await this.api.uploadImage(imageBlob);
         await this.api.createMediaItem(uploadToken, this.destAlbum.id);
     }
@@ -254,41 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-
-
-async function resizeImage(imageUrl, maxWidth, maxHeight) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.src = imageUrl;
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            let [width, height] = this.calculateDimensions(img, maxWidth, maxHeight);
-            
-            canvas.width = width;
-            canvas.height = height;
-            
-            ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.8));
-        };
-    });
-}
-
-function calculateDimensions(img, maxWidth, maxHeight) {
-    let width = img.width;
-    let height = img.height;
-    
-    if (width > height && width > maxWidth) {
-        height *= maxWidth / width;
-        width = maxWidth;
-    } else if (height > maxHeight) {
-        width *= maxHeight / height;
-        height = maxHeight;
-    }
-    
-    return [width, height];
-}
 
 
 class GooglePhotosAPI {
