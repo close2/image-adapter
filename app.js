@@ -23,7 +23,7 @@ class AuthStep {
     handleAuthCallback_(response) {
         if (response.access_token) {
             this.accessToken = response.access_token;
-            StepManager.showStep(new AlbumStep(this.accessToken));
+            StepManager.transitionToStep(new AlbumStep(this.accessToken));
         }
     }
 
@@ -81,7 +81,7 @@ class AlbumStep {
         this.albumNextButton.addEventListener('click', () => {
             const sourceAlbum = document.getElementById('source-album');
             const destAlbum = document.getElementById('dest-album');
-            StepManager.showStep(new PreviewStep(
+            StepManager.transitionToStep(new PreviewStep(
                 this.api.accessToken,
                 {
                     id: sourceAlbum.value,
@@ -114,7 +114,7 @@ class PreviewStep {
 
     setup() {
         this.previewNextButton.addEventListener('click', () => {
-            StepManager.showStep(new ProcessCopyStep(
+            StepManager.transitionToStep(new ProcessCopyStep(
                 this.api.accessToken,
                 Array.from(this.selectedImages),
                 this.destAlbum
@@ -188,40 +188,45 @@ class ProcessCopyStep {
     }
 
     async processImage(image, targetRatio) {
-        const response = await fetch(image.baseUrl);
-        const blob = await response.blob();
-        const img = await createImageBitmap(blob);
-        
+        const img = new Image();
+        img.crossOrigin = "anonymous";  // Add this line
+    
+        // Wrap image loading in a promise
+        await new Promise((resolve) => {
+            img.onload = resolve;
+            img.src = image.baseUrl;
+        });
+    
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        
+    
         const currentRatio = img.width / img.height;
         let newWidth = img.width;
         let newHeight = img.height;
-        
+    
         if (currentRatio > targetRatio) {
-            // Image is wider than target ratio
             newHeight = img.width / targetRatio;
             canvas.width = img.width;
             canvas.height = newHeight;
-            
+        
             const blackSpace = (newHeight - img.height) / 2;
             ctx.fillStyle = 'black';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, blackSpace);
         } else {
-            // Image is taller than target ratio
             newWidth = img.height * targetRatio;
             canvas.width = newWidth;
             canvas.height = img.height;
-            
+        
             const blackSpace = (newWidth - img.width) / 2;
             ctx.fillStyle = 'black';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, blackSpace, 0);
         }
-        
-        return canvas.toBlob(blob => blob, 'image/jpeg', 0.95);
+    
+        return new Promise(resolve => {
+            canvas.toBlob(resolve, 'image/jpeg', 0.95);
+        });
     }
 
     async uploadToAlbum(imageBlob) {
@@ -235,7 +240,7 @@ class ProcessCopyStep {
 }
 
 class StepManager {
-    static showStep(step) {
+    static transitionToStep(step) {
         console.log("Switching to step: " + step.displayElement());
         document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
         document.getElementById(step.displayElement()).classList.add('active');
@@ -246,7 +251,7 @@ class StepManager {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    StepManager.showStep(new AuthStep());
+    StepManager.transitionToStep(new AuthStep());
 });
 
 
