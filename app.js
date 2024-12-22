@@ -39,7 +39,6 @@ class SelectImagesStep {
         this.accessToken = accessToken;
         this.selectButton = document.getElementById('select-images-button');
         this.selectedPhotos = [];
-        this.setup();
     }
 
     displayElement() {
@@ -72,7 +71,6 @@ class DestinationAlbumStep {
         this.selectedPhotos = selectedPhotos;
         this.albumNameInput = document.getElementById('album-name-input');
         this.createAlbumButton = document.getElementById('create-album-button');
-        this.setup();
     }
 
     displayElement() {
