@@ -85,15 +85,31 @@ class AlbumStep {
 
     setup() {
         this.albumNextButton.addEventListener('click', () => {
-            StepManager.showStep(new PreviewStep(this.accessToken));
+            const sourceAlbum = document.getElementById('source-album');
+            const destAlbum = document.getElementById('dest-album');
+            StepManager.showStep(new PreviewStep(
+                this.accessToken,
+                {
+                    id: sourceAlbum.value,
+                    title: sourceAlbum.options[sourceAlbum.selectedIndex].text
+                },
+                {
+                    id: destAlbum.value,
+                    title: destAlbum.options[destAlbum.selectedIndex].text
+                }
+            ));
         });
     }
 }
+
 class PreviewStep {
-    constructor(accessToken) {
+    constructor(accessToken, sourceAlbum, destAlbum) {
         this.accessToken = accessToken;
+        this.sourceAlbum = sourceAlbum;
+        this.destAlbum = destAlbum;
         this.previewNextButton = document.getElementById('previewNext');
         this.previewContainer = document.getElementById('preview-container');
+        this.selectedImages = new Set();
         this.loadSourceImages();
         this.setup();
     }
@@ -104,12 +120,15 @@ class PreviewStep {
 
     setup() {
         this.previewNextButton.addEventListener('click', () => {
-            this.handlePreview();
+            StepManager.showStep(new ProcessCopyStep(
+                this.accessToken,
+                Array.from(this.selectedImages),
+                this.destAlbum
+            ));
         });
     }
 
     async loadSourceImages() {
-        const sourceAlbumId = document.getElementById('source-album').value;
         const response = await fetch(`https://photoslibrary.googleapis.com/v1/mediaItems:search`, {
             method: 'POST',
             headers: {
@@ -117,7 +136,7 @@ class PreviewStep {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                albumId: sourceAlbumId,
+                albumId: this.sourceAlbum.id,
                 pageSize: 50
             })
         });
@@ -133,6 +152,12 @@ class PreviewStep {
             const previewCard = document.createElement('div');
             previewCard.className = 'preview-card';
             
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = true;
+            checkbox.dataset.imageId = item.id;
+            checkbox.addEventListener('change', () => this.toggleImageSelection(item));
+            
             const img = document.createElement('img');
             img.src = `${item.baseUrl}=w200-h200`;
             img.alt = item.filename;
@@ -141,17 +166,118 @@ class PreviewStep {
             title.className = 'preview-title';
             title.textContent = item.filename;
             
+            previewCard.appendChild(checkbox);
             previewCard.appendChild(img);
             previewCard.appendChild(title);
             this.previewContainer.appendChild(previewCard);
+            
+            this.selectedImages.add(item);
         });
     }
 
-    handlePreview() {
-        console.log('Ready to process images');
+    toggleImageSelection(item) {
+        if (this.selectedImages.has(item)) {
+            this.selectedImages.delete(item);
+        } else {
+            this.selectedImages.add(item);
+        }
     }
 }
-class StepManager {
+
+class ProcessCopyStep {
+    constructor(accessToken, selectedImages, destAlbum) {
+        this.accessToken = accessToken;
+        this.selectedImages = selectedImages;
+        this.destAlbum = destAlbum;
+        this.processImages();
+    }
+
+    displayElement() {
+        return "process-step"
+    }
+
+    async processImages() {
+        const GOOGLE_HOME_RATIO = 16/9;
+        
+        for (const image of this.selectedImages) {
+            const processedImage = await this.processImage(image, GOOGLE_HOME_RATIO);
+            await this.uploadToAlbum(processedImage);
+        }
+    }
+
+    async processImage(image, targetRatio) {
+        const response = await fetch(image.baseUrl);
+        const blob = await response.blob();
+        const img = await createImageBitmap(blob);
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const currentRatio = img.width / img.height;
+        let newWidth = img.width;
+        let newHeight = img.height;
+        
+        if (currentRatio > targetRatio) {
+            // Image is wider than target ratio
+            newHeight = img.width / targetRatio;
+            canvas.width = img.width;
+            canvas.height = newHeight;
+            
+            const blackSpace = (newHeight - img.height) / 2;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, blackSpace);
+        } else {
+            // Image is taller than target ratio
+            newWidth = img.height * targetRatio;
+            canvas.width = newWidth;
+            canvas.height = img.height;
+            
+            const blackSpace = (newWidth - img.width) / 2;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, blackSpace, 0);
+        }
+        
+        return canvas.toBlob(blob => blob, 'image/jpeg', 0.95);
+    }
+
+    async uploadToAlbum(imageBlob) {
+        // First upload the image
+        const uploadToken = await this.uploadImage(imageBlob);
+        
+        // Then create the media item
+        await fetch('https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + this.accessToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                albumId: this.destAlbum.id,
+                newMediaItems: [{
+                    simpleMediaItem: {
+                        uploadToken: uploadToken
+                    }
+                }]
+            })
+        });
+    }
+
+    async uploadImage(blob) {
+        const response = await fetch('https://photoslibrary.googleapis.com/v1/uploads', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + this.accessToken,
+                'Content-Type': 'application/octet-stream',
+                'X-Goog-Upload-Protocol': 'raw'
+            },
+            body: blob
+        });
+        
+        return await response.text();
+    }
+}class StepManager {
     static showStep(step) {
         console.log("Switching to step: " + step.displayElement());
         document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
