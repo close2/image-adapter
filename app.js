@@ -23,7 +23,7 @@ class AuthStep {
     handleAuthCallback_(response) {
         if (response.access_token) {
             this.accessToken = response.access_token;
-            StepManager.transitionToStep(new AlbumStep(this.accessToken));
+            StepManager.transitionToStep(new SelectImagesStep(this.accessToken));
         }
     }
 
@@ -34,34 +34,81 @@ class AuthStep {
     }
 }
 
-class AlbumStep {
+class SelectImagesStep {
     constructor(accessToken) {
-        this.accessToken = accessToken;
-        this.albumNextButton = document.getElementById('album-next');
+        this.pickerApi = new PhotosPickerAPI(accessToken);
+        this.selectButton = document.getElementById('select-images-button');
         this.selectedPhotos = [];
         this.setup();
     }
 
     displayElement() {
-        return "album-select-step"
+        return "select-images-step"
+    }
+
+    async setup() {
+        this.selectButton.addEventListener('click', async () => {
+            const session = await this.pickerApi.createSession();
+            window.open(session.pickerUri, '_blank');
+            this.pollSession(session.id);
+        });
+    }
+
+    async pollSession(sessionId) {
+        const checkSession = async () => {
+            const status = await this.pickerApi.checkSession(sessionId);
+            
+            if (status.mediaItemsSet) {
+                const items = await this.pickerApi.getSelectedItems(sessionId);
+                this.selectedPhotos = items.mediaItems;
+                
+                StepManager.transitionToStep(new DestinationAlbumStep(
+                    this.pickerApi.accessToken,
+                    this.selectedPhotos
+                ));
+            } else {
+                setTimeout(checkSession, status.recommendedIntervalMs || 5000);
+            }
+        };
+        
+        checkSession();
+    }
+}
+
+class DestinationAlbumStep {
+    constructor(accessToken, selectedPhotos) {
+        this.api = new GooglePhotosAPI(accessToken);
+        this.selectedPhotos = selectedPhotos;
+        this.albumNameInput = document.getElementById('album-name-input');
+        this.createAlbumButton = document.getElementById('create-album-button');
+        this.setup();
+    }
+
+    displayElement() {
+        return "destination-album-step"
     }
 
     setup() {
-        const photoPicker = new google.photos.Picker({
-            clientId: CLIENT_ID,
-            select: 'multi',
-            mimeTypes: 'image/*',
-            onSelect: (photos) => {
-                this.selectedPhotos = photos;
-                StepManager.transitionToStep(new DestinationAlbumStep(
-                    this.accessToken,
-                    this.selectedPhotos
-                ));
-            }
-        });
+        // Set default album name
+        this.albumNameInput.value = 'google-home';
 
-        this.albumNextButton.addEventListener('click', () => {
-            photoPicker.open();
+        this.createAlbumButton.addEventListener('click', async () => {
+            const albumName = this.albumNameInput.value.trim();
+            
+            // Check if album exists
+            const albums = await this.api.getAlbums();
+            let targetAlbum = albums.find(album => album.title === albumName);
+
+            // Create album if it doesn't exist
+            if (!targetAlbum) {
+                targetAlbum = await this.api.createAlbum(albumName);
+            }
+
+            StepManager.transitionToStep(new ProcessCopyStep(
+                this.api.accessToken,
+                this.selectedPhotos,
+                targetAlbum
+            ));
         });
     }
 }
@@ -136,6 +183,7 @@ class ProcessCopyStep {
         await this.processImages();
     }
 }
+
 class StepManager {
     static transitionToStep(step) {
         console.log("Switching to step: " + step.displayElement());
@@ -158,6 +206,13 @@ class GooglePhotosAPI {
     constructor(accessToken) {
         this.accessToken = accessToken;
         this.baseUrl = 'https://photoslibrary.googleapis.com/v1';
+    }
+    
+    getHeaders() {
+        return {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+        };
     }
 
     async getAlbums() {
@@ -209,13 +264,6 @@ class GooglePhotosAPI {
         });
     }
 
-    getHeaders() {
-        return {
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json'
-        };
-    }
-
     async createAlbum(albumName) {
         const response = await fetch(`${this.baseUrl}/albums`, {
             method: 'POST',
@@ -229,40 +277,43 @@ class GooglePhotosAPI {
         return response.json();
     }
 }
-class DestinationAlbumStep {
-    constructor(accessToken, selectedPhotos) {
-        this.api = new GooglePhotosAPI(accessToken);
-        this.selectedPhotos = selectedPhotos;
-        this.albumNameInput = document.getElementById('album-name-input');
-        this.createAlbumButton = document.getElementById('create-album-button');
-        this.setup();
+
+class PhotosPickerAPI {
+    constructor(accessToken) {
+        this.accessToken = accessToken;
+        this.baseUrl = 'https://photoslibrary.googleapis.com/v1/photos/picker';
     }
 
-    displayElement() {
-        return "destination-album-step"
+    getHeaders() {
+        return {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+        };
     }
 
-    setup() {
-        // Set default album name
-        this.albumNameInput.value = 'google-home';
-
-        this.createAlbumButton.addEventListener('click', async () => {
-            const albumName = this.albumNameInput.value.trim();
-            
-            // Check if album exists
-            const albums = await this.api.getAlbums();
-            let targetAlbum = albums.find(album => album.title === albumName);
-
-            // Create album if it doesn't exist
-            if (!targetAlbum) {
-                targetAlbum = await this.api.createAlbum(albumName);
-            }
-
-            StepManager.transitionToStep(new ProcessCopyStep(
-                this.api.accessToken,
-                this.selectedPhotos,
-                targetAlbum
-            ));
+    async createSession() {
+        const response = await fetch(`${this.baseUrl}/sessions`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                mimeTypes: ['image/jpeg', 'image/png'],
+                allowMultipleSelection: true
+            })
         });
+        return response.json();
+    }
+
+    async checkSession(sessionId) {
+        const response = await fetch(`${this.baseUrl}/sessions/${sessionId}`, {
+            headers: this.getHeaders()
+        });
+        return response.json();
+    }
+
+    async getSelectedItems(sessionId) {
+        const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/items`, {
+            headers: this.getHeaders()
+        });
+        return response.json();
     }
 }
