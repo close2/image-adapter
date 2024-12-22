@@ -1,5 +1,5 @@
 const CLIENT_ID = '753842432555-gop0b5be9p1h315hrdm89ag1injqgj1b.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/photoslibrary';
+const SCOPES = 'https://www.googleapis.com/auth/photoslibrary https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata';
 
 class AuthStep {
 
@@ -287,7 +287,10 @@ class PhotosPickerAPI {
     getHeaders() {
         return {
             'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST',
+            'Access-Control-Allow-Headers': 'Content-Type'
         };
     }
 
