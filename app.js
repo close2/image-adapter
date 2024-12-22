@@ -36,7 +36,7 @@ class AuthStep {
 
 class AlbumStep {
     constructor(accessToken) {
-        this.accessToken = accessToken;
+        this.api = new GooglePhotosAPI(accessToken);
         this.albumNextButton = document.getElementById('albumNext');
         this.loadAlbums();
         this.setup();
@@ -47,14 +47,8 @@ class AlbumStep {
     }
 
     async loadAlbums() {
-        const response = await fetch('https://photoslibrary.googleapis.com/v1/albums', {
-            headers: {
-                'Authorization': 'Bearer ' + this.accessToken
-            }
-        });
-        
-        const data = await response.json();
-        this.renderAlbumSelectors(data.albums);
+        const albums = await this.api.getAlbums();
+        this.renderAlbumSelectors(albums);
     }
 
     renderAlbumSelectors(albums) {
@@ -88,7 +82,7 @@ class AlbumStep {
             const sourceAlbum = document.getElementById('source-album');
             const destAlbum = document.getElementById('dest-album');
             StepManager.showStep(new PreviewStep(
-                this.accessToken,
+                this.api.accessToken,
                 {
                     id: sourceAlbum.value,
                     title: sourceAlbum.options[sourceAlbum.selectedIndex].text
@@ -104,7 +98,7 @@ class AlbumStep {
 
 class PreviewStep {
     constructor(accessToken, sourceAlbum, destAlbum) {
-        this.accessToken = accessToken;
+        this.api = new GooglePhotosAPI(accessToken);
         this.sourceAlbum = sourceAlbum;
         this.destAlbum = destAlbum;
         this.previewNextButton = document.getElementById('previewNext');
@@ -121,7 +115,7 @@ class PreviewStep {
     setup() {
         this.previewNextButton.addEventListener('click', () => {
             StepManager.showStep(new ProcessCopyStep(
-                this.accessToken,
+                this.api.accessToken,
                 Array.from(this.selectedImages),
                 this.destAlbum
             ));
@@ -129,20 +123,8 @@ class PreviewStep {
     }
 
     async loadSourceImages() {
-        const response = await fetch(`https://photoslibrary.googleapis.com/v1/mediaItems:search`, {
-            method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + this.accessToken,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                albumId: this.sourceAlbum.id,
-                pageSize: 50
-            })
-        });
-
-        const data = await response.json();
-        this.renderPreviews(data.mediaItems);
+        const mediaItems = await this.api.getAlbumMedia(this.sourceAlbum.id);
+        this.renderPreviews(mediaItems);
     }
 
     renderPreviews(mediaItems) {
@@ -186,7 +168,7 @@ class PreviewStep {
 
 class ProcessCopyStep {
     constructor(accessToken, selectedImages, destAlbum) {
-        this.accessToken = accessToken;
+        this.api = new GooglePhotosAPI(accessToken);
         this.selectedImages = selectedImages;
         this.destAlbum = destAlbum;
         this.processImages();
@@ -243,41 +225,16 @@ class ProcessCopyStep {
     }
 
     async uploadToAlbum(imageBlob) {
-        // First upload the image
-        const uploadToken = await this.uploadImage(imageBlob);
-        
-        // Then create the media item
-        await fetch('https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate', {
-            method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + this.accessToken,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                albumId: this.destAlbum.id,
-                newMediaItems: [{
-                    simpleMediaItem: {
-                        uploadToken: uploadToken
-                    }
-                }]
-            })
-        });
+        const uploadToken = await this.api.uploadImage(imageBlob);
+        await this.api.createMediaItem(uploadToken, this.destAlbum.id);
     }
 
-    async uploadImage(blob) {
-        const response = await fetch('https://photoslibrary.googleapis.com/v1/uploads', {
-            method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + this.accessToken,
-                'Content-Type': 'application/octet-stream',
-                'X-Goog-Upload-Protocol': 'raw'
-            },
-            body: blob
-        });
-        
-        return await response.text();
+    async setup() {
+        await this.processImages();
     }
-}class StepManager {
+}
+
+class StepManager {
     static showStep(step) {
         console.log("Switching to step: " + step.displayElement());
         document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
@@ -329,3 +286,66 @@ function calculateDimensions(img, maxWidth, maxHeight) {
     return [width, height];
 }
 
+
+class GooglePhotosAPI {
+    constructor(accessToken) {
+        this.accessToken = accessToken;
+        this.baseUrl = 'https://photoslibrary.googleapis.com/v1';
+    }
+
+    async getAlbums() {
+        const response = await fetch(`${this.baseUrl}/albums`, {
+            headers: this.getHeaders()
+        });
+        const data = await response.json();
+        return data.albums;
+    }
+
+    async getAlbumMedia(albumId) {
+        const response = await fetch(`${this.baseUrl}/mediaItems:search`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                albumId: albumId,
+                pageSize: 50
+            })
+        });
+        const data = await response.json();
+        return data.mediaItems;
+    }
+
+    async uploadImage(blob) {
+        const response = await fetch(`${this.baseUrl}/uploads`, {
+            method: 'POST',
+            headers: {
+                ...this.getHeaders(),
+                'Content-Type': 'application/octet-stream',
+                'X-Goog-Upload-Protocol': 'raw'
+            },
+            body: blob
+        });
+        return await response.text();
+    }
+
+    async createMediaItem(uploadToken, albumId) {
+        return fetch(`${this.baseUrl}/mediaItems:batchCreate`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                albumId: albumId,
+                newMediaItems: [{
+                    simpleMediaItem: {
+                        uploadToken: uploadToken
+                    }
+                }]
+            })
+        });
+    }
+
+    getHeaders() {
+        return {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+        };
+    }
+}
