@@ -85,14 +85,16 @@ class AlbumStep {
 
     setup() {
         this.albumNextButton.addEventListener('click', () => {
-            StepManager.showStep(new PreviewStep());
+            StepManager.showStep(new PreviewStep(this.accessToken));
         });
     }
 }
-
 class PreviewStep {
-    constructor() {
+    constructor(accessToken) {
+        this.accessToken = accessToken;
         this.previewNextButton = document.getElementById('previewNext');
+        this.previewContainer = document.getElementById('preview-container');
+        this.loadSourceImages();
         this.setup();
     }
 
@@ -106,11 +108,49 @@ class PreviewStep {
         });
     }
 
+    async loadSourceImages() {
+        const sourceAlbumId = document.getElementById('source-album').value;
+        const response = await fetch(`https://photoslibrary.googleapis.com/v1/mediaItems:search`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + this.accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                albumId: sourceAlbumId,
+                pageSize: 50
+            })
+        });
+
+        const data = await response.json();
+        this.renderPreviews(data.mediaItems);
+    }
+
+    renderPreviews(mediaItems) {
+        this.previewContainer.innerHTML = '';
+        
+        mediaItems.forEach(item => {
+            const previewCard = document.createElement('div');
+            previewCard.className = 'preview-card';
+            
+            const img = document.createElement('img');
+            img.src = `${item.baseUrl}=w200-h200`;
+            img.alt = item.filename;
+            
+            const title = document.createElement('div');
+            title.className = 'preview-title';
+            title.textContent = item.filename;
+            
+            previewCard.appendChild(img);
+            previewCard.appendChild(title);
+            this.previewContainer.appendChild(previewCard);
+        });
+    }
+
     handlePreview() {
         console.log('Ready to process images');
     }
 }
-
 class StepManager {
     static showStep(step) {
         console.log("Switching to step: " + step.displayElement());
