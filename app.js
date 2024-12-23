@@ -197,27 +197,38 @@ class ProcessImagesStep {
         const ctx = canvas.getContext('2d');
     
         const currentRatio = img.width / img.height;
-        const isVerticalFill = currentRatio > targetRatio;
+        let newWidth = img.width;
+        let newHeight = img.height;
     
-        if (isVerticalFill) {
+        if (currentRatio > targetRatio) {
+            newHeight = img.width / targetRatio;
             canvas.width = img.width;
-            canvas.height = img.width / targetRatio;
-            const blackSpace = (canvas.height - img.height) / 2;
+            canvas.height = newHeight;
+        
+            const blackSpace = (newHeight - img.height) / 2;
+            // First draw background
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Then draw image on top
             ctx.drawImage(img, 0, blackSpace);
-            this.fillBars(ctx, canvas.width, blackSpace, true);
         } else {
+            newWidth = img.height * targetRatio;
+            canvas.width = newWidth;
             canvas.height = img.height;
-            canvas.width = img.height * targetRatio;
-            const blackSpace = (canvas.width - img.width) / 2;
+        
+            const blackSpace = (newWidth - img.width) / 2;
+            // First draw background
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Then draw image on top
             ctx.drawImage(img, blackSpace, 0);
-            this.fillBars(ctx, blackSpace, canvas.height, false);
         }
     
         return new Promise(resolve => {
             canvas.toBlob(resolve, 'image/jpeg', 0.95);
         });
     }
-
+    
     fillBars(ctx, width, size, isVertical) {
         if (this.backgroundStyle === 'black') {
             ctx.fillStyle = 'black';

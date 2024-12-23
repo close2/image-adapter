@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Home Image Resizer Development Prompts</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #4285f4;
+            border-bottom: 2px solid #4285f4;
+            padding-bottom: 10px;
+        }
+        .prompt {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #34a853;
+        }
+    </style>
+</head>
+<body>
+    <h1>Development Prompts</h1>
+    
+    <div class="prompt">index.html google-home-image-resizer The app should have the following behaviour. First only the authorize google photos button should be shown. This should already work. Then only the list of albums together with a next button. After that I would like a preview of the images with a next button. For now lets not implement the real functionality but only the html elements and the necessary javascript to change the display.</div>
+    
+    <div class="prompt">let's now integrate the existing code into the addEventListener</div>
+    
+    <div class="prompt">can we reuse existing functions from app.js?</div>
+    
+    <div class="prompt">app.js google-home-image-resizer do you know how to use the new google photos picker api?</div>
+    
+    <div class="prompt">google-home-image-resizer What image formats are supported for the favicon?</div>
+    
+    <div class="prompt">Is there a linux program, which can create an SVG from my png logo?</div>
+    
+    <div class="prompt">I have added a favicon.svg file. Do i need to change the html?</div>
+    
+    <div class="prompt">google-home-image-resizer There is still a cors xhr error when trying to retrieve the picker sessions.</div>
+    
+    <div class="prompt">google-home-image-resizer please verify if the scopes are correct</div>
+    
+    <div class="prompt">use the picker api to retrieve the images in the selectimages step and pass them to the next steps. Don't retrieve the images with the google photos api in the processCopyStep.</div>
+    
+    <div class="prompt">There is no switch to the AuthStep. I think that the scopes or enabled APIs is incorrect. How do I debug this?</div>
+    
+    <div class="prompt">Don't we need the 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly' scope to retrieve the images selected by the picker? google-home-image-resizer</div>
+    
+    <div class="prompt">app.js Shouldn't we use https://photospicker.googleapis.com/v1/ as baseurl for the SelectImagesStep?</div>
+    
+    <div class="prompt">The setup and pollSession need to be adapted as well</div>
+    
+    <div class="prompt">The body of the PhotosPickerAPI createSession is incorrect. It should be of the type PickingSession.</div>
+    
+    <div class="prompt">The picker `getSelectedItems` should use the mediaItems endpoint. The result will be elements of the type PickedMediaItem. Those elements should be passed through the DestinationAlbumStep to the ProcessCopyStep. (This might already be correct.) We will need a fetch method in the GooglePhotosAPI. The ProcessCopyStep should the use the GooglePhotosAPI fetch call to fetch the images using the baseUrl from the PickedMediaItem objects. (use the =d retrieval option)</div>
+
+    <div class="prompt">Let's split the ProcessCopyStep. The process step should also show the generated images. It should nevertheless pass them to the copy step.</div>
+    
+    <div class="prompt">The upload process should give some feedback what it's doing.</div>
+    
+    <div class="prompt">google-home-image-resizer Create some nice css for all steps. For instance the process messages are currently using an ugly font.</div>
+    
+    <div class="prompt">Store configured values in a cookie or other local storage, so that we can use it as default value. If possible this should include the google account and the destination album.</div>
+    
+    <div class="prompt">Is there a way to switch to another account? If not, we should add a button.</div>
+    
+    <div class="prompt">Add the possibility to choose between a black bar and a cloudy background. This cloudy background should bleed the border colors into black.</div>
+    
+    <div class="prompt">Can we simplify / improve the background code? The vertical and horizontal code looks very similar.</div>
+    
+    <div class="prompt">We wanted to simplify the selection process. Browsers however block popups. Please switch back to a button version.</div>
+</body>
+</html>
