@@ -298,8 +298,7 @@ class PhotosPickerAPI {
     async createSession() {
         const response = await fetch(`${this.baseUrl}/sessions`, {
             method: 'POST',
-            headers: this.getHeaders(),
-            body: {}
+            headers: this.getHeaders()
         });
         return response.json();
     }
