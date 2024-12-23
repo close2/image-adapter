@@ -137,12 +137,12 @@ class ProcessCopyStep {
     }
     
     async processImage(image, targetRatio) {
-        const baseUrl = `${image.baseUrl}=d`;
+        const imageBlob = await this.api.fetchImage(image.baseUrl);
         const img = new Image();
         
         await new Promise((resolve) => {
             img.onload = resolve;
-            img.src = baseUrl;
+            img.src = URL.createObjectURL(imageBlob);
         });
         
         const canvas = document.createElement('canvas');
@@ -175,8 +175,7 @@ class ProcessCopyStep {
         return new Promise(resolve => {
             canvas.toBlob(resolve, 'image/jpeg', 0.95);
         });
-    }
-    
+    }    
     async uploadToAlbum(imageBlob) {
         const uploadToken = await this.api.uploadImage(imageBlob);
         await this.api.createMediaItem(uploadToken, this.destAlbum.id);
@@ -279,8 +278,14 @@ class GooglePhotosAPI {
         });
         return response.json();
     }
-}
 
+    async fetchImage(imageUrl) {
+        const response = await fetch(`${imageUrl}=d`, {
+            headers: this.getHeaders()
+        });
+        return response.blob();
+    }
+}
 
 class PhotosPickerAPI {
     constructor(accessToken) {
@@ -311,7 +316,7 @@ class PhotosPickerAPI {
     }
 
     async getSelectedItems(sessionId) {
-        const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/items`, {
+        const response = await fetch(`${this.baseUrl}/mediaItems?sessionId=${sessionId}`, {
             headers: this.getHeaders()
         });
         return response.json();
