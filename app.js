@@ -204,16 +204,28 @@ class ProcessImagesStep {
             canvas.height = newHeight;
             
             const blackSpace = (newHeight - img.height) / 2;
+            
+            // Draw image first
+            ctx.drawImage(img, 0, blackSpace);
+            
             if (this.backgroundStyle === 'cloudy') {
-                const gradient = ctx.createLinearGradient(0, 0, 0, blackSpace);
-                gradient.addColorStop(0, 'black');
-                gradient.addColorStop(1, 'transparent');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, canvas.width, blackSpace);
+                // Sample colors from image edges
+                const topColor = ctx.getImageData(canvas.width/2, blackSpace, 1, 1).data;
+                const bottomColor = ctx.getImageData(canvas.width/2, canvas.height - blackSpace - 1, 1, 1).data;
+                
+                // Create gradients using sampled colors
+                const topGradient = ctx.createLinearGradient(0, 0, 0, blackSpace);
+                topGradient.addColorStop(0, 'black');
+                topGradient.addColorStop(1, `rgba(${topColor[0]}, ${topColor[1]}, ${topColor[2]}, 1)`);
                 
                 const bottomGradient = ctx.createLinearGradient(0, canvas.height - blackSpace, 0, canvas.height);
-                bottomGradient.addColorStop(0, 'transparent');
+                bottomGradient.addColorStop(0, `rgba(${bottomColor[0]}, ${bottomColor[1]}, ${bottomColor[2]}, 1)`);
                 bottomGradient.addColorStop(1, 'black');
+                
+                // Apply gradients
+                ctx.fillStyle = topGradient;
+                ctx.fillRect(0, 0, canvas.width, blackSpace);
+                
                 ctx.fillStyle = bottomGradient;
                 ctx.fillRect(0, canvas.height - blackSpace, canvas.width, blackSpace);
             } else {
@@ -221,23 +233,32 @@ class ProcessImagesStep {
                 ctx.fillRect(0, 0, canvas.width, blackSpace);
                 ctx.fillRect(0, canvas.height - blackSpace, canvas.width, blackSpace);
             }
-            ctx.drawImage(img, 0, blackSpace);
         } else {
+            // Similar changes for horizontal bars
             newWidth = img.height * targetRatio;
             canvas.width = newWidth;
             canvas.height = img.height;
             
             const blackSpace = (newWidth - img.width) / 2;
+            
+            // Draw image first
+            ctx.drawImage(img, blackSpace, 0);
+            
             if (this.backgroundStyle === 'cloudy') {
-                const gradient = ctx.createLinearGradient(0, 0, blackSpace, 0);
-                gradient.addColorStop(0, 'black');
-                gradient.addColorStop(1, 'transparent');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, blackSpace, canvas.height);
+                const leftColor = ctx.getImageData(blackSpace, canvas.height/2, 1, 1).data;
+                const rightColor = ctx.getImageData(canvas.width - blackSpace - 1, canvas.height/2, 1, 1).data;
+                
+                const leftGradient = ctx.createLinearGradient(0, 0, blackSpace, 0);
+                leftGradient.addColorStop(0, 'black');
+                leftGradient.addColorStop(1, `rgba(${leftColor[0]}, ${leftColor[1]}, ${leftColor[2]}, 1)`);
                 
                 const rightGradient = ctx.createLinearGradient(canvas.width - blackSpace, 0, canvas.width, 0);
-                rightGradient.addColorStop(0, 'transparent');
+                rightGradient.addColorStop(0, `rgba(${rightColor[0]}, ${rightColor[1]}, ${rightColor[2]}, 1)`);
                 rightGradient.addColorStop(1, 'black');
+                
+                ctx.fillStyle = leftGradient;
+                ctx.fillRect(0, 0, blackSpace, canvas.height);
+                
                 ctx.fillStyle = rightGradient;
                 ctx.fillRect(canvas.width - blackSpace, 0, blackSpace, canvas.height);
             } else {
@@ -245,14 +266,12 @@ class ProcessImagesStep {
                 ctx.fillRect(0, 0, blackSpace, canvas.height);
                 ctx.fillRect(canvas.width - blackSpace, 0, blackSpace, canvas.height);
             }
-            ctx.drawImage(img, blackSpace, 0);
         }
         
         return new Promise(resolve => {
             canvas.toBlob(resolve, 'image/jpeg', 0.95);
         });
     }
-
     updateStatus(message) {
         this.statusElement.textContent = message;
     }
