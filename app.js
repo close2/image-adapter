@@ -1,5 +1,5 @@
 const CLIENT_ID = '753842432555-gop0b5be9p1h315hrdm89ag1injqgj1b.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/photoslibrary https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata';
+const SCOPES = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly https://www.googleapis.com/auth/photoslibrary https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata';
 
 class AuthStep {
 
@@ -39,6 +39,7 @@ class SelectImagesStep {
         this.accessToken = accessToken;
         this.selectButton = document.getElementById('select-images-button');
         this.selectedPhotos = [];
+        this.setup();
     }
 
     displayElement() {
@@ -51,6 +52,7 @@ class SelectImagesStep {
             select: 'multi',
             mimeTypes: 'image/*',
             onSelect: (photos) => {
+                // Photos from picker include baseUrl and metadata
                 this.selectedPhotos = photos;
                 StepManager.transitionToStep(new DestinationAlbumStep(
                     this.accessToken,
@@ -59,9 +61,9 @@ class SelectImagesStep {
             }
         });
 
-        this.selectButton.onclick = () => {
+        this.selectButton.addEventListener('click', () => {
             photoPicker.open();
-        };
+        });
     }
 }
 
@@ -101,11 +103,11 @@ class DestinationAlbumStep {
         });
     }
 }
-
 class ProcessCopyStep {
-    constructor(accessToken, selectedPhotos) {
+    constructor(accessToken, selectedPhotos, destAlbum) {
         this.api = new GooglePhotosAPI(accessToken);
         this.selectedPhotos = selectedPhotos;
+        this.destAlbum = destAlbum;
         this.processImages();
     }
 
