@@ -221,34 +221,28 @@ class CopyImagesStep {
         return new Set(existingMedia?.map(item => item.description));
     }
 
-    generateImageIdentifier(index) {
-        return `google-home-adapted-${this.destAlbum.id}-${index}`;
-    }
-
     async copyImages() {
         const existingImages = await this.checkExistingImages();
         let completed = 0;
         
-        for (const [index, imageBlob] of this.processedImages.entries()) {
-            const identifier = this.generateImageIdentifier(index);
-            
-            if (existingImages.has(identifier)) {
+        for (const processedImage of this.processedImages) {
+            if (existingImages.has(processedImage.identifier)) {
                 this.updateStatus(`Skipping existing image ${completed + 1}/${this.processedImages.length}`);
                 completed++;
                 continue;
             }
 
             this.updateStatus(`Uploading image ${completed + 1}/${this.processedImages.length}`);
-            const uploadToken = await this.api.uploadImage(imageBlob);
+            const uploadToken = await this.api.uploadImage(processedImage.blob);
             
             this.updateStatus(`Creating media item ${completed + 1}/${this.processedImages.length}`);
-            await this.api.createMediaItem(uploadToken, this.destAlbum.id, identifier);
+            await this.api.createMediaItem(uploadToken, this.destAlbum.id, processedImage.identifier);
             
             completed++;
             this.updateProgress(completed);
         }
         this.updateStatus('All images processed successfully!');
-        StepManager.transitionToStep(new FinalCleanupStep(
+        StepManager.transitionToStep(new CleanupStep(
             this.api.accessToken,
             this.selectedPhotos,
             this.destAlbum
@@ -263,7 +257,6 @@ class CopyImagesStep {
     updateStatus(message) {
         this.statusElement.textContent = message;
     }
-
     async setup() {
         this.updateStatus('Starting upload process...');
         await this.copyImages();
@@ -271,7 +264,7 @@ class CopyImagesStep {
 }
 
 
-class FinalCleanupStep {
+class CleanupStep {
     constructor(accessToken, selectedPhotos, destAlbum) {
         this.api = new GooglePhotosAPI(accessToken);
         this.selectedPhotos = selectedPhotos;
@@ -285,13 +278,21 @@ class FinalCleanupStep {
     displayElement() {
         return "cleanup-step"
     }
-
     async findUnselectedImages() {
         const allAlbumMedia = await this.api.getAlbumMedia(this.destAlbum.id);
-        const selectedIds = new Set(this.selectedPhotos.map(p => p.id));
-        this.unselectedImages = allAlbumMedia.filter(item => !selectedIds.has(item.id));
+        
+        // Generate the set of identifiers for the current selection
+        const selectedIdentifiers = new Set(
+            this.selectedPhotos.map((_, index) => 
+                `google-home-adapted-${this.destAlbum.id}-${index}`
+            )
+        );
+        
+        // Filter images whose description (identifier) is not in the current selection
+        this.unselectedImages = allAlbumMedia.filter(item => 
+            !selectedIdentifiers.has(item.description)
+        );
     }
-
     displayUnselectedPreviews() {
         this.previewContainer.innerHTML = '';
         this.unselectedImages.forEach(image => {
