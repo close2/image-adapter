@@ -188,7 +188,8 @@ class ProcessImagesStep {
 
     async processImage(image, targetRatio) {
         console.log("Processing image: ", JSON.stringify(image));
-        const imageBlob = await this.api.fetchImage(image.baseUrl);
+
+        const imageBlob = await this.api.fetchImage(image.mediaFile.baseUrl);
         const img = new Image();
     
         await new Promise((resolve) => {
