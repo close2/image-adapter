@@ -236,7 +236,7 @@ class CopyImagesStep {
         let completed = 0;
         
         for (const processed of this.processedImages) {
-            processedImage = processed.processedImage;
+            const processedImage = processed.processedImage;
 
             if (existingImages.has(processed.identifier)) {
                 this.updateStatus(`Skipping existing image ${completed + 1}/${this.processedImages.length}`);
@@ -307,7 +307,7 @@ class CleanupStep {
             !selectedIdentifiers.has(item.description)
         );
     }
-    
+
     displayUnselectedPreviews() {
         this.previewContainer.innerHTML = '';
         this.unselectedImages.forEach(image => {
