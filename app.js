@@ -299,10 +299,7 @@ class PhotosPickerAPI {
         const response = await fetch(`${this.baseUrl}/sessions`, {
             method: 'POST',
             headers: this.getHeaders(),
-            body: JSON.stringify({
-                mimeTypes: ['image/jpeg', 'image/png'],
-                allowMultipleSelection: true
-            })
+            body: {}
         });
         return response.json();
     }
