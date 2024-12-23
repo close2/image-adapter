@@ -71,7 +71,7 @@ class SelectImagesStep {
                     this.selectedPhotos
                 ));
             } else {
-                setTimeout(checkSession, status.recommendedIntervalMs || 5000);
+                setTimeout(checkSession, status.pollingConfig.pollInterval || 5000);
             }
         };
         
