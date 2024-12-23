@@ -93,16 +93,18 @@ export class GooglePhotosAPI {
             })
         });
     }
-        
+
     async updateMediaItemDescription(mediaItemId, description) {
-        return fetch(`${this.baseUrl}/mediaItems/${mediaItemId}`, {
+        // Because of CORS we need to go through a proxy.
+        // I've setup a proxy at https://cors.hexe.monster using the project https://github.com/close2/cloudflare-cors-anywhere
+        return fetch(`https://cors.hexe.monster/?${this.baseUrl}/mediaItems/${mediaItemId}`, {
             method: 'PATCH',
             headers: {
                 ...this.getHeaders(),
                 'X-Goog-Field-Mask': 'description'
             },
             body: JSON.stringify({
-                description: `DELETE-${description}`
+                description: description
             })
         });
     }

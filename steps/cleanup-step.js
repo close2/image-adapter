@@ -43,10 +43,9 @@ export class CleanupStep {
         for (const image of this.unselectedImages) {
             await this.api.updateMediaItemDescription(
                 image.id, 
-                image.description || ''
+                'DELETE ' + (image.description || '')
             );
         }
-        this.previewContainer.innerHTML = '<p>Images marked for deletion!</p>';
     }
 
     async setup() {
@@ -61,7 +60,7 @@ export class CleanupStep {
         
         this.deleteButton.addEventListener('click', async () => {
             await this.markUnselectedImagesForDeletion();
-            this.previewContainer.innerHTML = '<p>Old images deleted successfully!</p>';
+            this.previewContainer.innerHTML = '<p>Images marked for deletion!</p><p>Search for DELETE</p>';
         });
     }
 }
