@@ -1,12 +1,17 @@
 const CLIENT_ID = '753842432555-gop0b5be9p1h315hrdm89ag1injqgj1b.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata https://www.googleapis.com/auth/photoslibrary.edit.appcreateddata'
-
 class AuthStep {
-
     constructor() {
         console.log("AuthStep constructor");
         this.tokenClient = this.initializeGoogleAuth_();
         this.authorizeButton = document.getElementById('authorize');
+        this.switchAccountButton = document.getElementById('switch-account');
+        
+        // Try to auto-login if we have stored credentials
+        const storedToken = localStorage.getItem('googleAccessToken');
+        if (storedToken) {
+            this.handleAuthCallback_({ access_token: storedToken });
+        }
     }
 
     displayElement() {
@@ -28,6 +33,7 @@ class AuthStep {
     handleAuthCallback_(response) {
         if (response.access_token) {
             this.accessToken = response.access_token;
+            localStorage.setItem('googleAccessToken', response.access_token);
             StepManager.transitionToStep(new SelectImagesStep(this.accessToken));
         }
     }
@@ -35,6 +41,11 @@ class AuthStep {
     setup() {
         this.authorizeButton.onclick = () => {
             this.tokenClient.requestAccessToken();
+        };
+
+        this.switchAccountButton.onclick = () => {
+            localStorage.removeItem('googleAccessToken');
+            this.tokenClient.requestAccessToken({ prompt: 'select_account' });
         };
     }
 }
@@ -77,6 +88,7 @@ class SelectImagesStep {
         checkSession();
     }
 }
+
 class DestinationAlbumStep {
     constructor(accessToken, selectedPhotos) {
         this.api = new GooglePhotosAPI(accessToken);
@@ -90,17 +102,17 @@ class DestinationAlbumStep {
     }
 
     setup() {
-        // Set default album name
-        this.albumNameInput.value = 'google-home';
+        // Get stored album name
+        const storedAlbumName = localStorage.getItem('lastUsedAlbum') || 'google-home';
+        this.albumNameInput.value = storedAlbumName;
 
         this.createAlbumButton.addEventListener('click', async () => {
             const albumName = this.albumNameInput.value.trim();
+            localStorage.setItem('lastUsedAlbum', albumName);
             
-            // Check if album exists
             const albums = await this.api.getAlbums();
             let targetAlbum = albums.find(album => album.title === albumName);
 
-            // Create album if it doesn't exist
             if (!targetAlbum) {
                 targetAlbum = await this.api.createAlbum(albumName);
             }
