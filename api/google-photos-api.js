@@ -97,7 +97,8 @@ export class GooglePhotosAPI {
     async updateMediaItemDescription(mediaItemId, description) {
         // Because of CORS we need to go through a proxy.
         // I've setup a proxy at https://cors.hexe.monster using the project https://github.com/close2/cloudflare-cors-anywhere
-        return fetch(`https://cors.hexe.monster/?${this.baseUrl}/mediaItems/${mediaItemId}`, {
+        //return fetch(`https://cors.hexe.monster/?${this.baseUrl}/mediaItems/${mediaItemId}`, {
+        return fetch(`${this.baseUrl}/mediaItems/${mediaItemId}`, {
             method: 'PATCH',
             headers: {
                 ...this.getHeaders(),
