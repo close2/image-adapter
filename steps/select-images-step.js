@@ -14,8 +14,6 @@ export class SelectImagesStep {
     }
 
     async setup() {
-        console.log("Setting up SelectImagesStep");
-        console.trace();
         this.selectButton.addEventListener('click', async () => {
             const session = await this.pickerApi.createSession();
             window.open(session.pickerUri, '_blank');
