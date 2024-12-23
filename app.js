@@ -119,9 +119,9 @@ class DestinationAlbumStep {
 }
 
 class ProcessedImage {
-    constructor(image, processedImage, identifier) {
+    constructor(image, processedImageBlob, identifier) {
         this.image = image;
-        this.processedImage = processedImage;
+        this.processedImageBlob = processedImageBlob;
         this.identifier = identifier;
     }
 }
@@ -235,20 +235,21 @@ class CopyImagesStep {
         const existingImages = await this.checkExistingImages();
         let completed = 0;
         
-        for (const processed of this.processedImages) {
-            const processedImage = processed.processedImage;
+        for (const processedImage of this.processedImages) {
+            const blob = processedImage.processedImageBlob
+            const identifier = processedImage.identifier;
 
-            if (existingImages.has(processed.identifier)) {
+            if (existingImages.has(identifier)) {
                 this.updateStatus(`Skipping existing image ${completed + 1}/${this.processedImages.length}`);
                 completed++;
                 continue;
             }
 
             this.updateStatus(`Uploading image ${completed + 1}/${this.processedImages.length}`);
-            const uploadToken = await this.api.uploadImage(processedImage.blob);
+            const uploadToken = await this.api.uploadImage(blob);
             
             this.updateStatus(`Creating media item ${completed + 1}/${this.processedImages.length}`);
-            await this.api.createMediaItem(uploadToken, this.destAlbum.id, processed.identifier);
+            await this.api.createMediaItem(uploadToken, this.destAlbum.id, identifier);
             
             completed++;
             this.updateProgress(completed);
@@ -298,13 +299,13 @@ class CleanupStep {
         const allAlbumMedia = await this.api.getAlbumMedia(this.destAlbum.id);
         
         // Generate the set of identifiers for the current selection
-        const selectedIdentifiers = new Set(
+        const processedIdentifiers = new Set(
             this.processedImages.map((_) => _.identifier)
         );
         
         // Filter images whose description (identifier) is not in the current selection
         this.unselectedImages = allAlbumMedia.filter(item => 
-            !selectedIdentifiers.has(item.description)
+            !processedIdentifiers.has(item.description)
         );
     }
 
