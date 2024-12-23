@@ -42,7 +42,6 @@ class AuthStep {
 class SelectImagesStep {
     constructor(accessToken) {
         this.pickerApi = new PhotosPickerAPI(accessToken);
-        this.selectButton = document.getElementById('select-images-button');
         this.selectedPhotos = [];
     }
 
@@ -51,11 +50,9 @@ class SelectImagesStep {
     }
 
     async setup() {
-        this.selectButton.addEventListener('click', async () => {
-            const session = await this.pickerApi.createSession();
-            window.open(session.pickerUri, '_blank');
-            this.pollSession(session.id);
-        });
+        const session = await this.pickerApi.createSession();
+        window.open(session.pickerUri, '_blank');
+        this.pollSession(session.id);
     }
 
     async pollSession(sessionId) {
@@ -80,7 +77,6 @@ class SelectImagesStep {
         checkSession();
     }
 }
-
 class DestinationAlbumStep {
     constructor(accessToken, selectedPhotos) {
         this.api = new GooglePhotosAPI(accessToken);
