@@ -43,7 +43,6 @@ class SelectImagesStep {
         this.accessToken = accessToken;
         this.selectButton = document.getElementById('select-images-button');
         this.selectedPhotos = [];
-        this.setup();
     }
 
     displayElement() {
