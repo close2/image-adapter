@@ -202,7 +202,6 @@ class ProcessImagesStep {
         });
     }
 }
-
 class CopyImagesStep {
     constructor(accessToken, processedImages, destAlbum) {
         this.api = new GooglePhotosAPI(accessToken);
@@ -249,6 +248,11 @@ class CopyImagesStep {
             this.updateProgress(completed);
         }
         this.updateStatus('All images processed successfully!');
+        StepManager.transitionToStep(new FinalCleanupStep(
+            this.api.accessToken,
+            this.selectedPhotos,
+            this.destAlbum
+        ));
     }
 
     updateProgress(completed) {
@@ -264,7 +268,64 @@ class CopyImagesStep {
         this.updateStatus('Starting upload process...');
         await this.copyImages();
     }
-}class StepManager {
+}
+
+
+class FinalCleanupStep {
+    constructor(accessToken, selectedPhotos, destAlbum) {
+        this.api = new GooglePhotosAPI(accessToken);
+        this.selectedPhotos = selectedPhotos;
+        this.destAlbum = destAlbum;
+        this.previewContainer = document.getElementById('cleanup-preview-container');
+        this.deleteButton = document.getElementById('delete-old-images-button');
+        this.skipButton = document.getElementById('skip-cleanup-button');
+        this.unselectedImages = [];
+    }
+
+    displayElement() {
+        return "cleanup-step"
+    }
+
+    async findUnselectedImages() {
+        const allAlbumMedia = await this.api.getAlbumMedia(this.destAlbum.id);
+        const selectedIds = new Set(this.selectedPhotos.map(p => p.id));
+        this.unselectedImages = allAlbumMedia.filter(item => !selectedIds.has(item.id));
+    }
+
+    displayUnselectedPreviews() {
+        this.previewContainer.innerHTML = '';
+        this.unselectedImages.forEach(image => {
+            const img = document.createElement('img');
+            img.src = `${image.baseUrl}=w200-h200`;
+            img.className = 'preview-image';
+            this.previewContainer.appendChild(img);
+        });
+    }
+
+    async deleteUnselectedImages() {
+        const imageIds = this.unselectedImages.map(img => img.id);
+        await this.api.removeMediaItems(this.destAlbum.id, imageIds);
+    }
+
+    async setup() {
+        await this.findUnselectedImages();
+        
+        if (this.unselectedImages.length === 0) {
+            this.previewContainer.innerHTML = '<p>No old images found to clean up!</p>';
+            return;
+        }
+
+        this.displayUnselectedPreviews();
+        
+        this.deleteButton.addEventListener('click', async () => {
+            await this.deleteUnselectedImages();
+            this.previewContainer.innerHTML = '<p>Old images deleted successfully!</p>';
+        });
+    }
+}
+
+
+class StepManager {
     static transitionToStep(step) {
         console.log("Switching to step: " + step.displayElement());
         document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
@@ -365,7 +426,18 @@ class GooglePhotosAPI {
         });
         return response.blob();
     }
+
+    async removeMediaItems(albumId, mediaItemIds) {
+        return fetch(`${this.baseUrl}/albums/${albumId}:batchRemoveMediaItems`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                mediaItemIds: mediaItemIds
+            })
+        });
+    }
 }
+
 
 class PhotosPickerAPI {
     constructor(accessToken) {
