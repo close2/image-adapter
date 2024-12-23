@@ -1,5 +1,6 @@
 const CLIENT_ID = '753842432555-gop0b5be9p1h315hrdm89ag1injqgj1b.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata https://www.googleapis.com/auth/photoslibrary.edit.appcreateddata'
+
 class AuthStep {
     constructor() {
         console.log("AuthStep constructor");
@@ -62,6 +63,8 @@ class SelectImagesStep {
     }
 
     async setup() {
+        console.log("Setting up SelectImagesStep");
+        console.trace();
         this.selectButton.addEventListener('click', async () => {
             const session = await this.pickerApi.createSession();
             window.open(session.pickerUri, '_blank');
