@@ -109,7 +109,7 @@ class DestinationAlbumStep {
                 targetAlbum = await this.api.createAlbum(albumName);
             }
 
-            StepManager.transitionToStep(new ProcessCopyStep(
+            StepManager.transitionToStep(new ProcessImagesStep(
                 this.api.accessToken,
                 this.selectedPhotos,
                 targetAlbum
@@ -117,15 +117,18 @@ class DestinationAlbumStep {
         });
     }
 }
-class ProcessCopyStep {
+class ProcessImagesStep {
     constructor(accessToken, selectedPhotos, destAlbum) {
         this.api = new GooglePhotosAPI(accessToken);
         this.selectedPhotos = selectedPhotos;
         this.destAlbum = destAlbum;
+        this.processedImages = [];
+        this.previewContainer = document.getElementById('preview-container');
+        this.continueButton = document.getElementById('continue-to-copy-button');
     }
 
     displayElement() {
-        return "process-step"
+        return "process-preview-step"
     }
 
     async processImages() {
@@ -133,10 +136,18 @@ class ProcessCopyStep {
         
         for (const photo of this.selectedPhotos) {
             const processedImage = await this.processImage(photo, GOOGLE_HOME_RATIO);
-            await this.uploadToAlbum(processedImage);
+            this.processedImages.push(processedImage);
+            this.displayPreview(processedImage);
         }
     }
     
+    displayPreview(imageBlob) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(imageBlob);
+        img.className = 'preview-image';
+        this.previewContainer.appendChild(img);
+    }
+
     async processImage(image, targetRatio) {
         console.log("Processing image: ", JSON.stringify(image));
 
@@ -178,17 +189,62 @@ class ProcessCopyStep {
         return new Promise(resolve => {
             canvas.toBlob(resolve, 'image/jpeg', 0.95);
         });
-    }    
-    async uploadToAlbum(imageBlob) {
-        const uploadToken = await this.api.uploadImage(imageBlob);
-        await this.api.createMediaItem(uploadToken, this.destAlbum.id);
     }
 
     async setup() {
         await this.processImages();
+        this.continueButton.addEventListener('click', () => {
+            StepManager.transitionToStep(new CopyImagesStep(
+                this.api.accessToken,
+                this.processedImages,
+                this.destAlbum
+            ));
+        });
     }
 }
 
+class CopyImagesStep {
+    constructor(accessToken, processedImages, destAlbum) {
+        this.api = new GooglePhotosAPI(accessToken);
+        this.processedImages = processedImages;
+        this.destAlbum = destAlbum;
+        this.progressElement = document.getElementById('copy-progress');
+        this.statusElement = document.getElementById('copy-status');
+    }
+
+    displayElement() {
+        return "copy-step"
+    }
+
+    async copyImages() {
+        let completed = 0;
+        for (const imageBlob of this.processedImages) {
+            this.updateStatus(`Uploading image ${completed + 1}/${this.processedImages.length}`);
+            const uploadToken = await this.api.uploadImage(imageBlob);
+            
+            this.updateStatus(`Creating media item ${completed + 1}/${this.processedImages.length}`);
+            await this.api.createMediaItem(uploadToken, this.destAlbum.id);
+            
+            completed++;
+            this.updateProgress(completed);
+        }
+        this.updateStatus('All images uploaded successfully!');
+    }
+
+    updateProgress(completed) {
+        const percentage = (completed / this.processedImages.length) * 100;
+        this.progressElement.textContent = `Progress: ${completed}/${this.processedImages.length} (${percentage.toFixed(1)}%)`;
+    }
+
+    updateStatus(message) {
+        this.statusElement.textContent = message;
+    }
+
+    async setup() {
+        this.updateStatus('Starting upload process...');
+        await this.copyImages();
+    }
+}
 class StepManager {
     static transitionToStep(step) {
         console.log("Switching to step: " + step.displayElement());
