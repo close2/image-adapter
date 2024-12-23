@@ -117,6 +117,15 @@ class DestinationAlbumStep {
         });
     }
 }
+
+class ProcessedImage {
+    constructor(image, processedImage, identifier) {
+        this.image = image;
+        this.processedImage = processedImage;
+        this.identifier = identifier;
+    }
+}
+
 class ProcessImagesStep {
     constructor(accessToken, selectedPhotos, destAlbum) {
         this.api = new GooglePhotosAPI(accessToken);
@@ -136,7 +145,7 @@ class ProcessImagesStep {
         
         for (const photo of this.selectedPhotos) {
             const processedImage = await this.processImage(photo, GOOGLE_HOME_RATIO);
-            this.processedImages.push(processedImage);
+            this.processedImages.push(new ProcessedImage(photo, processedImage, "processed from (" + photo.id + ") " + photo.filename));
             this.displayPreview(processedImage);
         }
     }
@@ -202,6 +211,7 @@ class ProcessImagesStep {
         });
     }
 }
+
 class CopyImagesStep {
     constructor(accessToken, processedImages, destAlbum) {
         this.api = new GooglePhotosAPI(accessToken);
@@ -225,8 +235,10 @@ class CopyImagesStep {
         const existingImages = await this.checkExistingImages();
         let completed = 0;
         
-        for (const processedImage of this.processedImages) {
-            if (existingImages.has(processedImage.identifier)) {
+        for (const processed of this.processedImages) {
+            processedImage = processed.processedImage;
+
+            if (existingImages.has(processed.identifier)) {
                 this.updateStatus(`Skipping existing image ${completed + 1}/${this.processedImages.length}`);
                 completed++;
                 continue;
@@ -236,15 +248,17 @@ class CopyImagesStep {
             const uploadToken = await this.api.uploadImage(processedImage.blob);
             
             this.updateStatus(`Creating media item ${completed + 1}/${this.processedImages.length}`);
-            await this.api.createMediaItem(uploadToken, this.destAlbum.id, processedImage.identifier);
+            await this.api.createMediaItem(uploadToken, this.destAlbum.id, processed.identifier);
             
             completed++;
             this.updateProgress(completed);
         }
+
         this.updateStatus('All images processed successfully!');
+
         StepManager.transitionToStep(new CleanupStep(
             this.api.accessToken,
-            this.selectedPhotos,
+            this.processedImages,
             this.destAlbum
         ));
     }
@@ -257,6 +271,7 @@ class CopyImagesStep {
     updateStatus(message) {
         this.statusElement.textContent = message;
     }
+
     async setup() {
         this.updateStatus('Starting upload process...');
         await this.copyImages();
@@ -265,9 +280,9 @@ class CopyImagesStep {
 
 
 class CleanupStep {
-    constructor(accessToken, selectedPhotos, destAlbum) {
+    constructor(accessToken, processedImages, destAlbum) {
         this.api = new GooglePhotosAPI(accessToken);
-        this.selectedPhotos = selectedPhotos;
+        this.processedImages = processedImages;
         this.destAlbum = destAlbum;
         this.previewContainer = document.getElementById('cleanup-preview-container');
         this.deleteButton = document.getElementById('delete-old-images-button');
@@ -278,14 +293,13 @@ class CleanupStep {
     displayElement() {
         return "cleanup-step"
     }
+
     async findUnselectedImages() {
         const allAlbumMedia = await this.api.getAlbumMedia(this.destAlbum.id);
         
         // Generate the set of identifiers for the current selection
         const selectedIdentifiers = new Set(
-            this.selectedPhotos.map((_, index) => 
-                `google-home-adapted-${this.destAlbum.id}-${index}`
-            )
+            this.processedImages.map((_) => _.identifier)
         );
         
         // Filter images whose description (identifier) is not in the current selection
@@ -293,6 +307,7 @@ class CleanupStep {
             !selectedIdentifiers.has(item.description)
         );
     }
+    
     displayUnselectedPreviews() {
         this.previewContainer.innerHTML = '';
         this.unselectedImages.forEach(image => {
