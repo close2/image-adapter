@@ -135,8 +135,17 @@ class ProcessImagesStep {
         this.previewContainer = document.getElementById('preview-container');
         this.continueButton = document.getElementById('continue-to-copy-button');
         this.statusElement = document.getElementById('process-status');
+        this.backgroundStyle = localStorage.getItem('backgroundStyle') || 'black';
         
-        // Disable button initially
+        // Add style selector
+        this.styleSelector = document.getElementById('background-style');
+        this.styleSelector.value = this.backgroundStyle;
+        this.styleSelector.addEventListener('change', () => {
+            this.backgroundStyle = this.styleSelector.value;
+            localStorage.setItem('backgroundStyle', this.backgroundStyle);
+            this.reprocessImages();
+        });
+        
         this.continueButton.disabled = true;
     }
 
@@ -174,8 +183,6 @@ class ProcessImagesStep {
     }
 
     async processImage(image, targetRatio) {
-        console.log("Processing image: ", JSON.stringify(image));
-
         const imageBlob = await this.api.fetchImage(image.mediaFile.baseUrl);
         const img = new Image();
         
@@ -197,8 +204,23 @@ class ProcessImagesStep {
             canvas.height = newHeight;
             
             const blackSpace = (newHeight - img.height) / 2;
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (this.backgroundStyle === 'cloudy') {
+                const gradient = ctx.createLinearGradient(0, 0, 0, blackSpace);
+                gradient.addColorStop(0, 'black');
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, blackSpace);
+                
+                const bottomGradient = ctx.createLinearGradient(0, canvas.height - blackSpace, 0, canvas.height);
+                bottomGradient.addColorStop(0, 'transparent');
+                bottomGradient.addColorStop(1, 'black');
+                ctx.fillStyle = bottomGradient;
+                ctx.fillRect(0, canvas.height - blackSpace, canvas.width, blackSpace);
+            } else {
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, canvas.width, blackSpace);
+                ctx.fillRect(0, canvas.height - blackSpace, canvas.width, blackSpace);
+            }
             ctx.drawImage(img, 0, blackSpace);
         } else {
             newWidth = img.height * targetRatio;
@@ -206,8 +228,23 @@ class ProcessImagesStep {
             canvas.height = img.height;
             
             const blackSpace = (newWidth - img.width) / 2;
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (this.backgroundStyle === 'cloudy') {
+                const gradient = ctx.createLinearGradient(0, 0, blackSpace, 0);
+                gradient.addColorStop(0, 'black');
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, blackSpace, canvas.height);
+                
+                const rightGradient = ctx.createLinearGradient(canvas.width - blackSpace, 0, canvas.width, 0);
+                rightGradient.addColorStop(0, 'transparent');
+                rightGradient.addColorStop(1, 'black');
+                ctx.fillStyle = rightGradient;
+                ctx.fillRect(canvas.width - blackSpace, 0, blackSpace, canvas.height);
+            } else {
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, blackSpace, canvas.height);
+                ctx.fillRect(canvas.width - blackSpace, 0, blackSpace, canvas.height);
+            }
             ctx.drawImage(img, blackSpace, 0);
         }
         
@@ -230,7 +267,14 @@ class ProcessImagesStep {
             ));
         });
     }
+
+    async reprocessImages() {
+        this.processedImages = [];
+        this.previewContainer.innerHTML = '';
+        await this.processImages();
+    }
 }
+
 class CopyImagesStep {
     constructor(accessToken, processedImages, destAlbum) {
         this.api = new GooglePhotosAPI(accessToken);
