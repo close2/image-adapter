@@ -1,16 +1,136 @@
+/* Common styles for all steps */
+.step {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Auth step */
+#authorize {
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#authorize:hover {
+    background-color: #3367d6;
+}
+
+/* Album selection */
+#album-name-input {
+    padding: 10px;
+    font-size: 16px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+#create-album-button {
+    background-color: #34a853;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Process step */
+#process-status {
+    font-size: 18px;
+    color: #333;
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #4285f4;
+}
 
 #preview-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 10px;
-    padding: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
 }
 
 .preview-image {
     width: 100%;
     height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.preview-image:hover {
+    transform: scale(1.02);
+}
+
+/* Copy step */
+#copy-status, #copy-progress {
+    font-size: 18px;
+    color: #333;
+    margin: 10px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #34a853;
+}
+
+/* Cleanup step */
+#cleanup-preview-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+/* Common button styles */
+button {
+    padding: 12px 24px;
+    border: none;
     border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin: 5px;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#continue-to-copy-button {
+    background-color: #4285f4;
+    color: white;
+}
+
+#delete-old-images-button {
+    background-color: #ea4335;
+    color: white;
+}
+
+#skip-cleanup-button {
+    background-color: #fbbc05;
+    color: white;
+}
+
+/* Status messages */
+.status-message {
+    font-size: 18px;
+    line-height: 1.5;
+    color: #333;
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #4285f4;
 }
 
 .step-indicator {
