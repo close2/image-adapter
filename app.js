@@ -299,7 +299,7 @@ class CopyImagesStep {
         let completed = 0;
         
         for (const processedImage of this.processedImages) {
-            const blob = processedImage.processedImageBlob
+            const blob = processedImage.blob
             const identifier = processedImage.identifier;
 
             if (existingImages.has(identifier)) {
