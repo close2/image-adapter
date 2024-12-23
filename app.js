@@ -114,14 +114,6 @@ class DestinationAlbumStep {
     }
 }
 
-class ProcessedImage {
-    constructor(image, processedImageBlob, identifier) {
-        this.image = image;
-        this.processedImageBlob = processedImageBlob;
-        this.identifier = identifier;
-    }
-}
-
 class ProcessImagesStep {
     constructor(accessToken, selectedPhotos, destAlbum) {
         this.api = new GooglePhotosAPI(accessToken);
@@ -130,6 +122,10 @@ class ProcessImagesStep {
         this.processedImages = [];
         this.previewContainer = document.getElementById('preview-container');
         this.continueButton = document.getElementById('continue-to-copy-button');
+        this.statusElement = document.getElementById('process-status');
+        
+        // Disable button initially
+        this.continueButton.disabled = true;
     }
 
     displayElement() {
@@ -138,12 +134,24 @@ class ProcessImagesStep {
 
     async processImages() {
         const GOOGLE_HOME_RATIO = 16/9;
+        const total = this.selectedPhotos.length;
         
-        for (const photo of this.selectedPhotos) {
+        for (const [index, photo] of this.selectedPhotos.entries()) {
+            this.updateStatus(`Processing image ${index + 1}/${total}`);
             const processedImage = await this.processImage(photo, GOOGLE_HOME_RATIO);
-            this.processedImages.push(new ProcessedImage(photo, processedImage, "processed from (" + photo.id + ") " + photo.filename));
+            const identifier = `google-home-adapted-${this.destAlbum.id}-${index}`;
+            
+            this.processedImages.push({
+                blob: processedImage,
+                identifier: identifier,
+                originalPhoto: photo
+            });
+            
             this.displayPreview(processedImage);
         }
+        
+        this.updateStatus(`Completed processing ${total} images`);
+        this.continueButton.disabled = false;
     }
     
     displayPreview(imageBlob) {
@@ -196,6 +204,10 @@ class ProcessImagesStep {
         });
     }
 
+    updateStatus(message) {
+        this.statusElement.textContent = message;
+    }
+
     async setup() {
         await this.processImages();
         this.continueButton.addEventListener('click', () => {
@@ -207,7 +219,6 @@ class ProcessImagesStep {
         });
     }
 }
-
 class CopyImagesStep {
     constructor(accessToken, processedImages, destAlbum) {
         this.api = new GooglePhotosAPI(accessToken);
