@@ -131,15 +131,16 @@ class ProcessImagesStep {
     displayElement() {
         return "process-preview-step"
     }
-
     async processImages() {
         const GOOGLE_HOME_RATIO = 16/9;
         const total = this.selectedPhotos.length;
         
-        for (const [index, photo] of this.selectedPhotos.entries()) {
-            this.updateStatus(`Processing image ${index + 1}/${total}`);
+        for (const photo of this.selectedPhotos) {
+            this.updateStatus(`Processing image ${this.processedImages.length + 1}/${total}`);
             const processedImage = await this.processImage(photo, GOOGLE_HOME_RATIO);
-            const identifier = `google-home-adapted-${this.destAlbum.id}-${index}`;
+            
+            // Create identifier from filename and id if available
+            const identifier = `google-home-adapted-${photo.filename}-${photo.id || ''}`;
             
             this.processedImages.push({
                 blob: processedImage,
@@ -153,7 +154,6 @@ class ProcessImagesStep {
         this.updateStatus(`Completed processing ${total} images`);
         this.continueButton.disabled = false;
     }
-    
     displayPreview(imageBlob) {
         const img = document.createElement('img');
         img.src = URL.createObjectURL(imageBlob);
