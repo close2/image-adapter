@@ -93,5 +93,19 @@ export class GooglePhotosAPI {
             })
         });
     }
+        
+    async updateMediaItemDescription(mediaItemId, description) {
+        return fetch(`${this.baseUrl}/mediaItems/${mediaItemId}`, {
+            method: 'PATCH',
+            headers: {
+                ...this.getHeaders(),
+                'X-Goog-Field-Mask': 'description'
+            },
+            body: JSON.stringify({
+                description: `DELETE-${description}`
+            })
+        });
+    }
 }
+
 

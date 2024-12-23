@@ -1,4 +1,3 @@
-import { StepManager } from '../step-manager.js';
 import { GooglePhotosAPI } from '../api/google-photos-api.js';
 
 export class CleanupStep {
@@ -40,9 +39,14 @@ export class CleanupStep {
         });
     }
 
-    async deleteUnselectedImages() {
-        const imageIds = this.unselectedImages.map(img => img.id);
-        await this.api.removeMediaItems(this.destAlbum.id, imageIds);
+    async markUnselectedImagesForDeletion() {
+        for (const image of this.unselectedImages) {
+            await this.api.updateMediaItemDescription(
+                image.id, 
+                image.description || ''
+            );
+        }
+        this.previewContainer.innerHTML = '<p>Images marked for deletion!</p>';
     }
 
     async setup() {
@@ -56,7 +60,7 @@ export class CleanupStep {
         this.displayUnselectedPreviews();
         
         this.deleteButton.addEventListener('click', async () => {
-            await this.deleteUnselectedImages();
+            await this.markUnselectedImagesForDeletion();
             this.previewContainer.innerHTML = '<p>Old images deleted successfully!</p>';
         });
     }
