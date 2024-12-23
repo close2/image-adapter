@@ -185,94 +185,89 @@ class ProcessImagesStep {
     async processImage(image, targetRatio) {
         const imageBlob = await this.api.fetchImage(image.mediaFile.baseUrl);
         const img = new Image();
-        
+    
         await new Promise((resolve) => {
             img.onload = resolve;
             img.src = URL.createObjectURL(imageBlob);
         });
-        
+    
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        
+    
         const currentRatio = img.width / img.height;
-        let newWidth = img.width;
-        let newHeight = img.height;
-        
-        if (currentRatio > targetRatio) {
-            newHeight = img.width / targetRatio;
+        const isVerticalFill = currentRatio > targetRatio;
+    
+        if (isVerticalFill) {
             canvas.width = img.width;
-            canvas.height = newHeight;
-            
-            const blackSpace = (newHeight - img.height) / 2;
-            
-            // Draw image first
+            canvas.height = img.width / targetRatio;
+            const blackSpace = (canvas.height - img.height) / 2;
             ctx.drawImage(img, 0, blackSpace);
-            
-            if (this.backgroundStyle === 'cloudy') {
-                // Sample colors from image edges
-                const topColor = ctx.getImageData(canvas.width/2, blackSpace, 1, 1).data;
-                const bottomColor = ctx.getImageData(canvas.width/2, canvas.height - blackSpace - 1, 1, 1).data;
-                
-                // Create gradients using sampled colors
-                const topGradient = ctx.createLinearGradient(0, 0, 0, blackSpace);
-                topGradient.addColorStop(0, 'black');
-                topGradient.addColorStop(1, `rgba(${topColor[0]}, ${topColor[1]}, ${topColor[2]}, 1)`);
-                
-                const bottomGradient = ctx.createLinearGradient(0, canvas.height - blackSpace, 0, canvas.height);
-                bottomGradient.addColorStop(0, `rgba(${bottomColor[0]}, ${bottomColor[1]}, ${bottomColor[2]}, 1)`);
-                bottomGradient.addColorStop(1, 'black');
-                
-                // Apply gradients
-                ctx.fillStyle = topGradient;
-                ctx.fillRect(0, 0, canvas.width, blackSpace);
-                
-                ctx.fillStyle = bottomGradient;
-                ctx.fillRect(0, canvas.height - blackSpace, canvas.width, blackSpace);
-            } else {
-                ctx.fillStyle = 'black';
-                ctx.fillRect(0, 0, canvas.width, blackSpace);
-                ctx.fillRect(0, canvas.height - blackSpace, canvas.width, blackSpace);
-            }
+            this.fillBars(ctx, canvas.width, blackSpace, true);
         } else {
-            // Similar changes for horizontal bars
-            newWidth = img.height * targetRatio;
-            canvas.width = newWidth;
             canvas.height = img.height;
-            
-            const blackSpace = (newWidth - img.width) / 2;
-            
-            // Draw image first
+            canvas.width = img.height * targetRatio;
+            const blackSpace = (canvas.width - img.width) / 2;
             ctx.drawImage(img, blackSpace, 0);
-            
-            if (this.backgroundStyle === 'cloudy') {
-                const leftColor = ctx.getImageData(blackSpace, canvas.height/2, 1, 1).data;
-                const rightColor = ctx.getImageData(canvas.width - blackSpace - 1, canvas.height/2, 1, 1).data;
-                
-                const leftGradient = ctx.createLinearGradient(0, 0, blackSpace, 0);
-                leftGradient.addColorStop(0, 'black');
-                leftGradient.addColorStop(1, `rgba(${leftColor[0]}, ${leftColor[1]}, ${leftColor[2]}, 1)`);
-                
-                const rightGradient = ctx.createLinearGradient(canvas.width - blackSpace, 0, canvas.width, 0);
-                rightGradient.addColorStop(0, `rgba(${rightColor[0]}, ${rightColor[1]}, ${rightColor[2]}, 1)`);
-                rightGradient.addColorStop(1, 'black');
-                
-                ctx.fillStyle = leftGradient;
-                ctx.fillRect(0, 0, blackSpace, canvas.height);
-                
-                ctx.fillStyle = rightGradient;
-                ctx.fillRect(canvas.width - blackSpace, 0, blackSpace, canvas.height);
-            } else {
-                ctx.fillStyle = 'black';
-                ctx.fillRect(0, 0, blackSpace, canvas.height);
-                ctx.fillRect(canvas.width - blackSpace, 0, blackSpace, canvas.height);
-            }
+            this.fillBars(ctx, blackSpace, canvas.height, false);
         }
-        
+    
         return new Promise(resolve => {
             canvas.toBlob(resolve, 'image/jpeg', 0.95);
         });
     }
-    updateStatus(message) {
+
+    fillBars(ctx, width, size, isVertical) {
+        if (this.backgroundStyle === 'black') {
+            ctx.fillStyle = 'black';
+            if (isVertical) {
+                ctx.fillRect(0, 0, width, size);
+                ctx.fillRect(0, ctx.canvas.height - size, width, size);
+            } else {
+                ctx.fillRect(0, 0, size, size);
+                ctx.fillRect(ctx.canvas.width - size, 0, size, size);
+            }
+            return;
+        }
+
+        const getEdgeColor = (x, y) => {
+            const color = ctx.getImageData(x, y, 1, 1).data;
+            return `rgba(${color[0]}, ${color[1]}, ${color[2]}, 1)`;
+        };
+
+        if (isVertical) {
+            const topColor = getEdgeColor(width/2, size);
+            const bottomColor = getEdgeColor(width/2, ctx.canvas.height - size - 1);
+        
+            const topGradient = ctx.createLinearGradient(0, 0, 0, size);
+            topGradient.addColorStop(0, 'black');
+            topGradient.addColorStop(1, topColor);
+        
+            const bottomGradient = ctx.createLinearGradient(0, ctx.canvas.height - size, 0, ctx.canvas.height);
+            bottomGradient.addColorStop(0, bottomColor);
+            bottomGradient.addColorStop(1, 'black');
+        
+            ctx.fillStyle = topGradient;
+            ctx.fillRect(0, 0, width, size);
+            ctx.fillStyle = bottomGradient;
+            ctx.fillRect(0, ctx.canvas.height - size, width, size);
+        } else {
+            const leftColor = getEdgeColor(size, ctx.canvas.height/2);
+            const rightColor = getEdgeColor(ctx.canvas.width - size - 1, ctx.canvas.height/2);
+        
+            const leftGradient = ctx.createLinearGradient(0, 0, size, 0);
+            leftGradient.addColorStop(0, 'black');
+            leftGradient.addColorStop(1, leftColor);
+        
+            const rightGradient = ctx.createLinearGradient(ctx.canvas.width - size, 0, ctx.canvas.width, 0);
+            rightGradient.addColorStop(0, rightColor);
+            rightGradient.addColorStop(1, 'black');
+        
+            ctx.fillStyle = leftGradient;
+            ctx.fillRect(0, 0, size, ctx.canvas.height);
+            ctx.fillStyle = rightGradient;
+            ctx.fillRect(ctx.canvas.width - size, 0, size, ctx.canvas.height);
+        }
+    }    updateStatus(message) {
         this.statusElement.textContent = message;
     }
 
