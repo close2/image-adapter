@@ -2,7 +2,7 @@ import { StepManager } from '../step-manager.js';
 import { PhotosPickerAPI } from '../api/photos-picker-api.js';
 import { DestinationAlbumStep } from './destination-album-step.js';
 
-class SelectImagesStep {
+export class SelectImagesStep {
     constructor(accessToken) {
         this.pickerApi = new PhotosPickerAPI(accessToken);
         this.selectButton = document.getElementById('select-images-button');
