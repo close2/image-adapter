@@ -41,7 +41,7 @@ class AuthStep {
 
 class SelectImagesStep {
     constructor(accessToken) {
-        this.api = new GooglePhotosAPI(accessToken);
+        this.pickerApi = new PhotosPickerAPI(accessToken);
         this.selectButton = document.getElementById('select-images-button');
         this.selectedPhotos = [];
     }
@@ -51,51 +51,26 @@ class SelectImagesStep {
     }
 
     async setup() {
-        this.selectButton.onclick = async () => {
-            // Create a new picker session
-            const sessionResponse = await fetch('https://photoslibrary.googleapis.com/v1/photos/picker/sessions', {
-                method: 'POST',
-                headers: this.api.getHeaders(),
-                body: JSON.stringify({
-                    mimeTypes: ['image/jpeg', 'image/png'],
-                    allowMultipleSelection: true
-                })
-            });
-            
-            const session = await sessionResponse.json();
-            
-            // Open picker in new window
+        this.selectButton.addEventListener('click', async () => {
+            const session = await this.pickerApi.createSession();
             window.open(session.pickerUri, '_blank');
-            
-            // Start polling for results
             this.pollSession(session.id);
-        };
+        });
     }
 
     async pollSession(sessionId) {
         const checkSession = async () => {
-            const response = await fetch(`https://photoslibrary.googleapis.com/v1/photos/picker/sessions/${sessionId}`, {
-                headers: this.api.getHeaders()
-            });
-            
-            const status = await response.json();
+            const status = await this.pickerApi.checkSession(sessionId);
             
             if (status.mediaItemsSet) {
-                // Get selected items
-                const itemsResponse = await fetch(`https://photoslibrary.googleapis.com/v1/photos/picker/sessions/${sessionId}/items`, {
-                    headers: this.api.getHeaders()
-                });
-                
-                const items = await itemsResponse.json();
+                const items = await this.pickerApi.getSelectedItems(sessionId);
                 this.selectedPhotos = items.mediaItems;
                 
-                // Move to next step
                 StepManager.transitionToStep(new DestinationAlbumStep(
-                    this.api.accessToken,
+                    this.pickerApi.accessToken,
                     this.selectedPhotos
                 ));
             } else {
-                // Continue polling based on recommended interval
                 setTimeout(checkSession, status.recommendedIntervalMs || 5000);
             }
         };
@@ -301,6 +276,47 @@ class GooglePhotosAPI {
                     title: albumName
                 }
             })
+        });
+        return response.json();
+    }
+}
+
+
+class PhotosPickerAPI {
+    constructor(accessToken) {
+        this.accessToken = accessToken;
+        this.baseUrl = 'https://photospicker.googleapis.com/v1';
+    }
+
+    getHeaders() {
+        return {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    async createSession() {
+        const response = await fetch(`${this.baseUrl}/sessions`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                mimeTypes: ['image/jpeg', 'image/png'],
+                allowMultipleSelection: true
+            })
+        });
+        return response.json();
+    }
+
+    async checkSession(sessionId) {
+        const response = await fetch(`${this.baseUrl}/sessions/${sessionId}`, {
+            headers: this.getHeaders()
+        });
+        return response.json();
+    }
+
+    async getSelectedItems(sessionId) {
+        const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/items`, {
+            headers: this.getHeaders()
         });
         return response.json();
     }
