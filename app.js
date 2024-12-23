@@ -283,7 +283,7 @@ class GooglePhotosAPI {
     }
 
     async fetchImage(imageUrl) {
-        const response = await fetch(`${imageUrl}=d`, {
+        const response = await fetch(`${imageUrl}=w6400-h4800`, {
             headers: this.getHeaders()
         });
         return response.blob();
