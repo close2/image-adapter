@@ -241,49 +241,64 @@ class ProcessImagesStep {
                 ctx.fillRect(0, 0, width, size);
                 ctx.fillRect(0, ctx.canvas.height - size, width, size);
             } else {
-                ctx.fillRect(0, 0, size, size);
-                ctx.fillRect(ctx.canvas.width - size, 0, size, size);
+                ctx.fillRect(0, 0, size, ctx.canvas.height);
+                ctx.fillRect(ctx.canvas.width - size, 0, size, ctx.canvas.height);
             }
             return;
         }
 
-        const getEdgeColor = (x, y) => {
-            const color = ctx.getImageData(x, y, 1, 1).data;
-            return `rgba(${color[0]}, ${color[1]}, ${color[2]}, 1)`;
-        };
-
         if (isVertical) {
-            const topColor = getEdgeColor(width/2, size);
-            const bottomColor = getEdgeColor(width/2, ctx.canvas.height - size - 1);
-        
-            const topGradient = ctx.createLinearGradient(0, 0, 0, size);
-            topGradient.addColorStop(0, 'black');
-            topGradient.addColorStop(1, topColor);
-        
-            const bottomGradient = ctx.createLinearGradient(0, ctx.canvas.height - size, 0, ctx.canvas.height);
-            bottomGradient.addColorStop(0, bottomColor);
-            bottomGradient.addColorStop(1, 'black');
-        
-            ctx.fillStyle = topGradient;
-            ctx.fillRect(0, 0, width, size);
-            ctx.fillStyle = bottomGradient;
-            ctx.fillRect(0, ctx.canvas.height - size, width, size);
+            // Sample colors along the top and bottom edges
+            const numSamples = width;
+            const topColors = [];
+            const bottomColors = [];
+            
+            for (let x = 0; x < width; x++) {
+                topColors.push(ctx.getImageData(x, size, 1, 1).data);
+                bottomColors.push(ctx.getImageData(x, ctx.canvas.height - size - 1, 1, 1).data);
+            }
+
+            // Create gradients for top and bottom bars
+            for (let x = 0; x < width; x++) {
+                const topGradient = ctx.createLinearGradient(0, 0, 0, size);
+                topGradient.addColorStop(0, 'black');
+                topGradient.addColorStop(1, `rgba(${topColors[x][0]}, ${topColors[x][1]}, ${topColors[x][2]}, 1)`);
+                
+                const bottomGradient = ctx.createLinearGradient(0, ctx.canvas.height - size, 0, ctx.canvas.height);
+                bottomGradient.addColorStop(0, `rgba(${bottomColors[x][0]}, ${bottomColors[x][1]}, ${bottomColors[x][2]}, 1)`);
+                bottomGradient.addColorStop(1, 'black');
+                
+                ctx.fillStyle = topGradient;
+                ctx.fillRect(x, 0, 1, size);
+                ctx.fillStyle = bottomGradient;
+                ctx.fillRect(x, ctx.canvas.height - size, 1, size);
+            }
         } else {
-            const leftColor = getEdgeColor(size, ctx.canvas.height/2);
-            const rightColor = getEdgeColor(ctx.canvas.width - size - 1, ctx.canvas.height/2);
-        
-            const leftGradient = ctx.createLinearGradient(0, 0, size, 0);
-            leftGradient.addColorStop(0, 'black');
-            leftGradient.addColorStop(1, leftColor);
-        
-            const rightGradient = ctx.createLinearGradient(ctx.canvas.width - size, 0, ctx.canvas.width, 0);
-            rightGradient.addColorStop(0, rightColor);
-            rightGradient.addColorStop(1, 'black');
-        
-            ctx.fillStyle = leftGradient;
-            ctx.fillRect(0, 0, size, ctx.canvas.height);
-            ctx.fillStyle = rightGradient;
-            ctx.fillRect(ctx.canvas.width - size, 0, size, ctx.canvas.height);
+            // Sample colors along the left and right edges
+            const numSamples = ctx.canvas.height;
+            const leftColors = [];
+            const rightColors = [];
+            
+            for (let y = 0; y < ctx.canvas.height; y++) {
+                leftColors.push(ctx.getImageData(size, y, 1, 1).data);
+                rightColors.push(ctx.getImageData(ctx.canvas.width - size - 1, y, 1, 1).data);
+            }
+
+            // Create gradients for left and right bars
+            for (let y = 0; y < ctx.canvas.height; y++) {
+                const leftGradient = ctx.createLinearGradient(0, 0, size, 0);
+                leftGradient.addColorStop(0, 'black');
+                leftGradient.addColorStop(1, `rgba(${leftColors[y][0]}, ${leftColors[y][1]}, ${leftColors[y][2]}, 1)`);
+                
+                const rightGradient = ctx.createLinearGradient(ctx.canvas.width - size, 0, ctx.canvas.width, 0);
+                rightGradient.addColorStop(0, `rgba(${rightColors[y][0]}, ${rightColors[y][1]}, ${rightColors[y][2]}, 1)`);
+                rightGradient.addColorStop(1, 'black');
+                
+                ctx.fillStyle = leftGradient;
+                ctx.fillRect(0, y, size, 1);
+                ctx.fillStyle = rightGradient;
+                ctx.fillRect(ctx.canvas.width - size, y, size, 1);
+            }
         }
     } 
     
