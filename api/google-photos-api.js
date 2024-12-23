@@ -104,7 +104,7 @@ export class GooglePhotosAPI {
                 'X-Goog-Field-Mask': 'description'
             },
             body: JSON.stringify({
-                description: `DELETE-${description}`
+                description: `${description}`
             })
         });
     }
