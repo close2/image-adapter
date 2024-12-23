@@ -1,9 +1,10 @@
 const CLIENT_ID = '753842432555-gop0b5be9p1h315hrdm89ag1injqgj1b.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly https://www.googleapis.com/auth/photoslibrary https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata';
+const SCOPES = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata https://www.googleapis.com/auth/photoslibrary.edit.appcreateddata'
 
 class AuthStep {
 
     constructor() {
+        console.log("AuthStep constructor");
         this.tokenClient = this.initializeGoogleAuth_();
         this.authorizeButton = document.getElementById('authorize');
     }
@@ -13,10 +14,14 @@ class AuthStep {
     }
 
     initializeGoogleAuth_() {
+        console.log("Initializing Google Auth");
         return google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: SCOPES,
-            callback: (response) => this.handleAuthCallback_(response)
+            callback: (response) => {
+                console.log("Auth callback received", response);
+                this.handleAuthCallback_(response)
+            }
         });
     }
 
@@ -33,7 +38,6 @@ class AuthStep {
         };
     }
 }
-
 class SelectImagesStep {
     constructor(accessToken) {
         this.accessToken = accessToken;
