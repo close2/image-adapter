@@ -66,6 +66,8 @@ class SelectImagesStep {
                 const items = await this.pickerApi.getSelectedItems(sessionId);
                 this.selectedPhotos = items.mediaItems;
                 
+                console.log("Selected photos: ", JSON.stringify(this.selectedPhotos));
+
                 StepManager.transitionToStep(new DestinationAlbumStep(
                     this.pickerApi.accessToken,
                     this.selectedPhotos
@@ -120,7 +122,6 @@ class ProcessCopyStep {
         this.api = new GooglePhotosAPI(accessToken);
         this.selectedPhotos = selectedPhotos;
         this.destAlbum = destAlbum;
-        this.processImages();
     }
 
     displayElement() {
@@ -137,6 +138,8 @@ class ProcessCopyStep {
     }
     
     async processImage(image, targetRatio) {
+        console.log("Processing image: ", JSON.stringify(image));
+        
         const imageBlob = await this.api.fetchImage(image.baseUrl);
         const img = new Image();
         
