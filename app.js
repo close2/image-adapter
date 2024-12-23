@@ -283,7 +283,9 @@ class GooglePhotosAPI {
     }
 
     async fetchImage(imageUrl) {
-        const response = await fetch(`${imageUrl}=w6400-h4800`, {
+        // Because of CORS we need to go through a proxy.
+        // I've setup a proxy at https://cors.hexe.monster using the project https://github.com/close2/cloudflare-cors-anywhere
+        const response = await fetch(`https://cors.hexe.monster/?${imageUrl}=w6400-h4800`, {
             headers: this.getHeaders()
         });
         return response.blob();
