@@ -156,6 +156,8 @@ class ProcessImagesStep {
     }
 
     async processImages() {
+        this.continueButton.disabled = true;
+
         const GOOGLE_HOME_RATIO = 16/9;
         const total = this.selectedPhotos.length;
         
@@ -212,6 +214,7 @@ class ProcessImagesStep {
             const blackSpace = (newHeight - img.height) / 2;
             ctx.drawImage(img, 0, blackSpace);
             this.fillBars(ctx, canvas.width, blackSpace, true);
+            ctx.drawImage(img, 0, blackSpace);
         } else {
             newWidth = img.height * targetRatio;
             canvas.width = newWidth;
@@ -220,6 +223,7 @@ class ProcessImagesStep {
             const blackSpace = (newWidth - img.width) / 2;
             ctx.drawImage(img, blackSpace, 0);
             this.fillBars(ctx, blackSpace, canvas.height, false);
+            ctx.drawImage(img, blackSpace, 0);
         }
     
         return new Promise(resolve => {
