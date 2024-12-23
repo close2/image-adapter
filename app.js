@@ -59,9 +59,9 @@ class SelectImagesStep {
             }
         });
 
-        this.selectButton.addEventListener('click', () => {
+        this.selectButton.onClick = () => {
             photoPicker.open();
-        });
+        };
     }
 }
 
