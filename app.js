@@ -7,12 +7,8 @@ class AuthStep {
         this.tokenClient = this.initializeGoogleAuth_();
         this.authorizeButton = document.getElementById('authorize');
         this.switchAccountButton = document.getElementById('switch-account');
-        
-        // Try to auto-login if we have stored credentials
-        const storedToken = localStorage.getItem('googleAccessToken');
-        if (storedToken) {
-            this.handleAuthCallback_({ access_token: storedToken });
-        }
+        this.loginStatus = document.getElementById('login-status');
+        this.continueButton = document.getElementById('continue-button');
     }
 
     displayElement() {
@@ -40,6 +36,21 @@ class AuthStep {
     }
 
     setup() {
+        const storedToken = localStorage.getItem('googleAccessToken');
+        if (storedToken) {
+            this.authorizeButton.style.display = 'none';
+            this.loginStatus.style.display = 'block';
+            this.continueButton.style.display = 'block';
+            
+            this.continueButton.onclick = () => {
+                this.handleAuthCallback_({ access_token: storedToken });
+            };
+        } else {
+            this.authorizeButton.style.display = 'block';
+            this.loginStatus.style.display = 'none';
+            this.continueButton.style.display = 'none';
+        }
+
         this.authorizeButton.onclick = () => {
             this.tokenClient.requestAccessToken();
         };
@@ -622,3 +633,4 @@ class PhotosPickerAPI {
         return response.json();
     }
 }
+
