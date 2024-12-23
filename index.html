@@ -17,6 +17,34 @@
     </style>
 </head>
 <body>
+
+    <div class="step-indicator">
+        <div class="step-item" data-step="auth-step">
+            <div class="step-number">1</div>
+            <div class="step-title">Authorize</div>
+        </div>
+        <div class="step-item" data-step="select-images-step">
+            <div class="step-number">2</div>
+            <div class="step-title">Select Images</div>
+        </div>
+        <div class="step-item" data-step="destination-album-step">
+            <div class="step-number">3</div>
+            <div class="step-title">Choose Album</div>
+        </div>
+        <div class="step-item" data-step="process-preview-step">
+            <div class="step-number">4</div>
+            <div class="step-title">Process</div>
+        </div>
+        <div class="step-item" data-step="copy-step">
+            <div class="step-number">5</div>
+            <div class="step-title">Upload</div>
+        </div>
+        <div class="step-item" data-step="cleanup-step">
+            <div class="step-number">6</div>
+            <div class="step-title">Cleanup</div>
+        </div>
+    </div>
+    
     <div id="auth-step" class="step active">
         <button id="authorize">Authorize Google Photos</button>
     </div>
@@ -44,3 +72,4 @@
     </div>
 </body>
 </html>
+
