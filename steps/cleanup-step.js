@@ -1,7 +1,7 @@
 import { StepManager } from '../step-manager.js';
 import { GooglePhotosAPI } from '../api/google-photos-api.js';
 
-export class class CleanupStep {
+export class CleanupStep {
     constructor(accessToken, processedImages, destAlbum) {
         this.api = new GooglePhotosAPI(accessToken);
         this.processedImages = processedImages;
