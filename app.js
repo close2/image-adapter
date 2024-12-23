@@ -166,7 +166,7 @@ class ProcessImagesStep {
             const processedImage = await this.processImage(photo, GOOGLE_HOME_RATIO);
             
             // Create identifier from filename and id if available
-            const identifier = `google-home-adapted-${this.backgroundStyle}-${photo.filename}-${photo.id || ''}`;
+            const identifier = `google-home-adapted-${this.backgroundStyle}-${photo.mediaFile.filename}-${photo.id || ''}`;
             
             this.processedImages.push({
                 blob: processedImage,
