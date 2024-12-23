@@ -379,9 +379,7 @@ class GooglePhotosAPI {
     }
 
     async uploadImage(blob) {
-        // Because of CORS we need to go through a proxy.
-        // I've setup a proxy at https://cors.hexe.monster using the project https://github.com/close2/cloudflare-cors-anywhere
-        const response = await fetch(`https://cors.hexe.monster/?${this.baseUrl}/uploads`, {
+        const response = await fetch(`${this.baseUrl}/uploads`, {
             method: 'POST',
             headers: {
                 ...this.getHeaders(),
@@ -393,19 +391,21 @@ class GooglePhotosAPI {
         return await response.text();
     }
 
-    async createMediaItem(uploadToken, albumId) {
-        return fetch(`${this.baseUrl}/mediaItems:batchCreate`, {
+    async createMediaItem(uploadToken, albumId, description) {
+        const response = await fetch(`${this.baseUrl}/mediaItems:batchCreate`, {
             method: 'POST',
             headers: this.getHeaders(),
             body: JSON.stringify({
                 albumId: albumId,
                 newMediaItems: [{
+                    description: description,
                     simpleMediaItem: {
                         uploadToken: uploadToken
                     }
                 }]
             })
         });
+        return response.json();
     }
 
     async createAlbum(albumName) {
