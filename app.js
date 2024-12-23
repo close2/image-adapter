@@ -154,6 +154,7 @@ class ProcessImagesStep {
     displayElement() {
         return "process-preview-step"
     }
+
     async processImages() {
         const GOOGLE_HOME_RATIO = 16/9;
         const total = this.selectedPhotos.length;
@@ -177,6 +178,7 @@ class ProcessImagesStep {
         this.updateStatus(`Completed processing ${total} images`);
         this.continueButton.disabled = false;
     }
+
     displayPreview(imageBlob) {
         const img = document.createElement('img');
         img.src = URL.createObjectURL(imageBlob);
@@ -185,7 +187,7 @@ class ProcessImagesStep {
     }
 
     async processImage(image, targetRatio) {
-        const imageBlob = await this.api.fetchImage(image.mediaFile.baseUrl);
+        const imageBlob = await this.api.fetchImage(image.baseUrl);
         const img = new Image();
     
         await new Promise((resolve) => {
@@ -206,29 +208,23 @@ class ProcessImagesStep {
             canvas.height = newHeight;
         
             const blackSpace = (newHeight - img.height) / 2;
-            // First draw background
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // Then draw image on top
             ctx.drawImage(img, 0, blackSpace);
+            this.fillBars(ctx, canvas.width, blackSpace, true);
         } else {
             newWidth = img.height * targetRatio;
             canvas.width = newWidth;
             canvas.height = img.height;
         
             const blackSpace = (newWidth - img.width) / 2;
-            // First draw background
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // Then draw image on top
             ctx.drawImage(img, blackSpace, 0);
+            this.fillBars(ctx, blackSpace, canvas.height, false);
         }
     
         return new Promise(resolve => {
             canvas.toBlob(resolve, 'image/jpeg', 0.95);
         });
-    }
-    
+    }    
+
     fillBars(ctx, width, size, isVertical) {
         if (this.backgroundStyle === 'black') {
             ctx.fillStyle = 'black';
@@ -280,7 +276,9 @@ class ProcessImagesStep {
             ctx.fillStyle = rightGradient;
             ctx.fillRect(ctx.canvas.width - size, 0, size, ctx.canvas.height);
         }
-    }    updateStatus(message) {
+    } 
+    
+    updateStatus(message) {
         this.statusElement.textContent = message;
     }
 
