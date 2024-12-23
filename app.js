@@ -366,7 +366,9 @@ class GooglePhotosAPI {
     }
 
     async getAlbumMedia(albumId) {
-        const response = await fetch(`${this.baseUrl}/mediaItems:search`, {
+        // Because of CORS we need to go through a proxy.
+        // I've setup a proxy at https://cors.hexe.monster using the project https://github.com/close2/cloudflare-cors-anywhere
+        const response = await fetch(`https://cors.hexe.monster/?${this.baseUrl}/mediaItems:search`, {
             method: 'POST',
             headers: this.getHeaders(),
             body: JSON.stringify({
