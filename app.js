@@ -216,19 +216,39 @@ class CopyImagesStep {
         return "copy-step"
     }
 
+    async checkExistingImages() {
+        this.updateStatus('Checking for existing images...');
+        const existingMedia = await this.api.getAlbumMedia(this.destAlbum.id);
+        return new Set(existingMedia?.map(item => item.description));
+    }
+
+    generateImageIdentifier(index) {
+        return `google-home-adapted-${this.destAlbum.id}-${index}`;
+    }
+
     async copyImages() {
+        const existingImages = await this.checkExistingImages();
         let completed = 0;
-        for (const imageBlob of this.processedImages) {
+        
+        for (const [index, imageBlob] of this.processedImages.entries()) {
+            const identifier = this.generateImageIdentifier(index);
+            
+            if (existingImages.has(identifier)) {
+                this.updateStatus(`Skipping existing image ${completed + 1}/${this.processedImages.length}`);
+                completed++;
+                continue;
+            }
+
             this.updateStatus(`Uploading image ${completed + 1}/${this.processedImages.length}`);
             const uploadToken = await this.api.uploadImage(imageBlob);
             
             this.updateStatus(`Creating media item ${completed + 1}/${this.processedImages.length}`);
-            await this.api.createMediaItem(uploadToken, this.destAlbum.id);
+            await this.api.createMediaItem(uploadToken, this.destAlbum.id, identifier);
             
             completed++;
             this.updateProgress(completed);
         }
-        this.updateStatus('All images uploaded successfully!');
+        this.updateStatus('All images processed successfully!');
     }
 
     updateProgress(completed) {
@@ -244,8 +264,7 @@ class CopyImagesStep {
         this.updateStatus('Starting upload process...');
         await this.copyImages();
     }
-}
-class StepManager {
+}class StepManager {
     static transitionToStep(step) {
         console.log("Switching to step: " + step.displayElement());
         document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
