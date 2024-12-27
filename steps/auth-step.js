@@ -28,6 +28,7 @@ export class AuthStep {
             }
         });
     }
+
     async checkTokenValidity(accessToken) {
         return google.accounts.oauth2.hasGrantedAllScopes(
             accessToken,
@@ -35,20 +36,22 @@ export class AuthStep {
         );
     }
 
+    handleCredentialResponse(response) {
+        const payload = google.accounts.id.decode(response.credential);
+        if (this.userInfoElement && payload) {
+            this.userInfoElement.textContent = `Logged in as: ${payload.email}`;
+            this.userInfoElement.style.display = 'block';
+        }
+    }
+
     async updateUserInfo(accessToken) {
         const isValid = await this.checkTokenValidity(accessToken);
         if (isValid) {
-            // Use the token to fetch user info from Google's userinfo endpoint
-            const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
+            google.accounts.id.prompt((notification) => {
+                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                    // Handle error if needed
                 }
             });
-            const userInfo = await response.json();
-            if (this.userInfoElement) {
-                this.userInfoElement.textContent = `Logged in as: ${userInfo.email}`;
-                this.userInfoElement.style.display = 'block';
-            }
             return true;
         }
         return false;
