@@ -22,7 +22,6 @@ export class AuthStep {
         if (response.access_token) {
             this.accessToken = response.access_token;
             localStorage.setItem('googleAccessToken', response.access_token);
-            await this.updateUserInfo();
             StepManager.transitionToStep(new SelectImagesStep(this.accessToken));
         }
     }
