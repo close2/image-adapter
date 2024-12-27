@@ -40,10 +40,11 @@ export class AuthStep {
 
     async checkTokenValidity(accessToken) {
         try {
-            const tokenInfo = await google.accounts.oauth2.tokenInfo(accessToken);
-            return tokenInfo && tokenInfo.expires_in > 0;
+            const response = await fetch('https://oauth2.googleapis.com/tokeninfo?access_token=' + accessToken);
+            const tokenInfo = await response.json();
+            return tokenInfo && tokenInfo.expires_in > 0 && tokenInfo.scope.includes(SCOPES);
         } catch (error) {
-            console.log('Token validation failed:', error);
+            console.log('Token validation error:', error);
             return false;
         }
     }
