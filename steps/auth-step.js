@@ -28,34 +28,46 @@ export class AuthStep {
             }
         });
     }
+    async checkTokenValidity(accessToken) {
+        return google.accounts.oauth2.hasGrantedAllScopes(
+            accessToken,
+            SCOPES.split(' ')
+        );
+    }
 
-    async updateUserInfo() {
-        const client = google.accounts.oauth2.initCodeClient({
-            client_id: CLIENT_ID,
-            scope: SCOPES,
-            callback: (response) => {
-                if (this.userInfoElement) {
-                    this.userInfoElement.textContent = `Logged in as: ${response.email}`;
-                    this.userInfoElement.style.display = 'block';
+    async updateUserInfo(accessToken) {
+        const isValid = await this.checkTokenValidity(accessToken);
+        if (isValid) {
+            // Use the token to fetch user info from Google's userinfo endpoint
+            const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
                 }
+            });
+            const userInfo = await response.json();
+            if (this.userInfoElement) {
+                this.userInfoElement.textContent = `Logged in as: ${userInfo.email}`;
+                this.userInfoElement.style.display = 'block';
             }
-        });
-        await client.requestCode();
+            return true;
+        }
+        return false;
     }
 
     async setup() {
         const storedToken = localStorage.getItem('googleAccessToken');
         
-        if (storedToken) {
+        if (storedToken && await this.checkTokenValidity(storedToken)) {
+            await this.updateUserInfo(storedToken);
             this.authorizeButton.style.display = 'none';
             this.loginStatus.style.display = 'block';
             this.continueButton.style.display = 'block';
-            await this.updateUserInfo();
             
             this.continueButton.onclick = () => {
                 this.handleAuthCallback_({ access_token: storedToken });
             };
         } else {
+            localStorage.removeItem('googleAccessToken');
             this.showLoginButtons();
         }
 
@@ -68,7 +80,6 @@ export class AuthStep {
             this.tokenClient.requestAccessToken({ prompt: 'select_account' });
         };
     }
-
     showLoginButtons() {
         this.authorizeButton.style.display = 'block';
         this.loginStatus.style.display = 'none';
