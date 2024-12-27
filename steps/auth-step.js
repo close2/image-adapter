@@ -39,10 +39,13 @@ export class AuthStep {
     }
 
     async checkTokenValidity(accessToken) {
-        return google.accounts.oauth2.hasGrantedAllScopes(
-            accessToken,
-            SCOPES.split(' ')
-        );
+        try {
+            const tokenInfo = await google.accounts.oauth2.tokenInfo(accessToken);
+            return tokenInfo && tokenInfo.expires_in > 0;
+        } catch (error) {
+            console.log('Token validation failed:', error);
+            return false;
+        }
     }
 
     handleCredentialResponse(response) {
