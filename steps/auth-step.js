@@ -17,6 +17,16 @@ export class AuthStep {
         return "auth-step"
     }
 
+
+    async handleAuthCallback_(response) {
+        if (response.access_token) {
+            this.accessToken = response.access_token;
+            localStorage.setItem('googleAccessToken', response.access_token);
+            await this.updateUserInfo();
+            StepManager.transitionToStep(new SelectImagesStep(this.accessToken));
+        }
+    }
+
     initializeGoogleAuth_() {
         console.log("Initializing Google Auth");
         return google.accounts.oauth2.initTokenClient({
@@ -44,38 +54,23 @@ export class AuthStep {
         }
     }
 
-    async updateUserInfo(accessToken) {
-        const isValid = await this.checkTokenValidity(accessToken);
-        if (isValid) {
-            google.accounts.id.prompt((notification) => {
-                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                    // Handle error if needed
-                }
-            });
-            return true;
-        }
-        return false;
-    }
-
     async setup() {
         const storedToken = localStorage.getItem('googleAccessToken');
         
         if (storedToken && await this.checkTokenValidity(storedToken)) {
-            await this.updateUserInfo(storedToken);
             this.authorizeButton.style.display = 'none';
             this.loginStatus.style.display = 'block';
             this.continueButton.style.display = 'block';
-            
-            this.continueButton.onclick = () => {
-                this.handleAuthCallback_({ access_token: storedToken });
-            };
+            this.continueButton.addEventListener('click', () => {
+                StepManager.transitionToStep(new SelectImagesStep(storedToken));
+            });
         } else {
             localStorage.removeItem('googleAccessToken');
             this.showLoginButtons();
         }
 
         this.authorizeButton.onclick = () => {
-            this.tokenClient.requestAccessToken();
+            this.tokenClient.requestAccessToken({ prompt: 'select_account' });
         };
 
         this.switchAccountButton.onclick = () => {
@@ -89,15 +84,6 @@ export class AuthStep {
         this.continueButton.style.display = 'none';
         if (this.userInfoElement) {
             this.userInfoElement.style.display = 'none';
-        }
-    }
-
-    async handleAuthCallback_(response) {
-        if (response.access_token) {
-            this.accessToken = response.access_token;
-            localStorage.setItem('googleAccessToken', response.access_token);
-            await this.updateUserInfo();
-            StepManager.transitionToStep(new SelectImagesStep(this.accessToken));
         }
     }
 }
