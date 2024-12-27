@@ -42,7 +42,7 @@ export class AuthStep {
         try {
             const response = await fetch('https://oauth2.googleapis.com/tokeninfo?access_token=' + accessToken);
             const tokenInfo = await response.json();
-            return tokenInfo && tokenInfo.expires_in > 0 && tokenInfo.scope.includes(SCOPES);
+            return tokenInfo && tokenInfo.expires_in > 0;
         } catch (error) {
             console.log('Token validation error:', error);
             return false;
