@@ -16,7 +16,7 @@ export class GooglePhotosAPI {
             headers: this.getHeaders()
         });
         const data = await response.json();
-        return data.albums;
+        return data.albums || [];
     }
 
     async getAlbumMedia(albumId) {
